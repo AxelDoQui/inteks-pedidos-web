@@ -1,0 +1,3649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pedidos — InTeks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bl:#2563eb;--bld:#1d4ed8;--bl-light:#eff6ff;--bl-mid:#bfdbfe;
+  --gn:#16a34a;--gn-light:#f0fdf4;--gn-mid:#bbf7d0;
+  --rd:#dc2626;--rd-light:#fef2f2;
+  --am:#d97706;--am-light:#fffbeb;--am-mid:#fde68a;
+  --pu:#7c3aed;--pu-light:#f5f3ff;
+  --sl:#0891b2;--sl-light:#ecfeff;
+  --bg:#f1f5f9;--sf:#fff;--br:#e2e8f0;--br2:#f8fafc;
+  --tx:#0f172a;--tx2:#475569;--tx3:#94a3b8;
+  --r:14px;--r2:10px;--r3:8px;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  --sh2:0 2px 8px rgba(0,0,0,.1),0 8px 32px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;font-size:15px}
+
+header{background:linear-gradient(135deg,#1e40af,#2563eb 60%,#3b82f6);color:#fff;
+  padding:0 20px;height:58px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 2px 12px rgba(37,99,235,.35);position:sticky;top:0;z-index:100}
+.header-logo{font-size:1.35rem}
+.header-title{font-size:1.05rem;font-weight:700;letter-spacing:-.3px}
+.header-sub{font-size:.7rem;opacity:.7;letter-spacing:.5px;text-transform:uppercase}
+.header-date{margin-left:auto;text-align:right;font-size:.75rem;opacity:.75;font-weight:500}
+.header-ver{font-size:.65rem;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:99px;font-weight:700}
+
+.alerta-banner{background:linear-gradient(to right,#fffbeb,#fef3c7);border-bottom:2px solid var(--am-mid);
+  padding:10px 20px;display:none;gap:10px;align-items:flex-start;font-size:.83rem}
+.alerta-banner.show{display:flex}
+.alerta-banner .ico{font-size:1.1rem;flex-shrink:0;margin-top:1px}
+.alerta-item{display:inline-flex;align-items:center;gap:5px;margin-right:12px}
+.alerta-metodo{font-size:.72rem;padding:1px 7px;border-radius:20px;font-weight:600;margin-left:4px}
+.alerta-local{background:#dcfce7;color:#15803d}
+.alerta-remoto{background:#e0f2fe;color:#0369a1}
+.alerta-item.hecho b{text-decoration:line-through;opacity:.6}
+.alerta-hecho{background:#d1fae5;color:#065f46}
+.alerta-lim-ok{background:#e0e7ff;color:#3730a3}
+.alerta-lim-pronto{background:#fde68a;color:#92400e}
+.alerta-lim-pasada{background:#fecaca;color:#991b1b}
+.alerta-resumen{font-weight:700}
+
+.nav-wrap{position:relative;z-index:40}
+.mas-panel{display:none;position:absolute;top:100%;right:8px;left:auto;min-width:260px;max-width:min(340px,calc(100vw - 16px));
+  background:var(--sf);border:1px solid var(--br);border-radius:0 0 var(--r) var(--r);
+  box-shadow:0 10px 28px rgba(0,0,0,.16);overflow:hidden}
+.mas-panel.show{display:block}
+.mas-panel button{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;
+  background:none;border:none;border-bottom:1px solid var(--br2);padding:12px 16px;cursor:pointer;
+  font-family:'Inter',sans-serif}
+.mas-panel button:last-child{border-bottom:none}
+.mas-panel button:hover{background:var(--bg)}
+.mas-n{font-size:.88rem;font-weight:600;color:var(--tx)}
+.mas-d{font-size:.72rem;color:var(--tx3);line-height:1.35}
+nav{display:flex;background:var(--sf);border-bottom:1px solid var(--br);overflow-x:auto;gap:2px;padding:0 8px;
+  box-shadow:0 1px 4px rgba(0,0,0,.05)}
+nav button{flex:1;min-width:68px;padding:11px 4px 9px;border:none;background:none;font-size:.7rem;
+  font-family:'Inter',sans-serif;font-weight:500;color:var(--tx3);cursor:pointer;
+  border-bottom:2.5px solid transparent;transition:all .18s;white-space:nowrap;position:relative;
+  display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button .nav-lbl{font-size:.68rem;letter-spacing:.2px}
+nav button.active{color:var(--bl);border-bottom-color:var(--bl);font-weight:600}
+.badge{position:absolute;top:5px;right:8px;background:var(--rd);color:#fff;border-radius:99px;
+  font-size:.6rem;font-weight:700;padding:1px 5px;min-width:15px;text-align:center;border:1.5px solid var(--sf)}
+
+.sec{display:none;padding:18px 16px;max-width:680px;margin:0 auto}
+.sec.active{display:block}
+.sec-title{font-size:.85rem;font-weight:700;color:var(--tx2);letter-spacing:.6px;text-transform:uppercase;
+  margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--br)}
+
+.card{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:18px;
+  margin-bottom:14px;box-shadow:var(--sh)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-header h3{font-size:.95rem;font-weight:600}
+
+label{display:block;font-size:.75rem;font-weight:600;margin-bottom:5px;color:var(--tx2);
+  letter-spacing:.3px;text-transform:uppercase}
+select,input,textarea{width:100%;padding:10px 13px;border:1.5px solid var(--br);border-radius:var(--r3);
+  font-size:.88rem;font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);
+  transition:border-color .15s,box-shadow .15s}
+select:focus,input:focus,textarea:focus{border-color:var(--bl);outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+textarea{resize:vertical;min-height:62px;line-height:1.5}
+input[type=checkbox]{width:auto}
+.mb{margin-bottom:14px}
+.fila{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 18px;border:none;
+  border-radius:var(--r3);font-size:.88rem;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;
+  transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--bl);color:#fff}
+.btn-primary:hover{background:var(--bld)}
+.btn-success{background:var(--gn);color:#fff}
+.btn-success:hover{background:#15803d}
+.btn-outline{background:var(--sf);color:var(--tx2);border:1.5px solid var(--br)}
+.btn-outline:hover{border-color:var(--bl);color:var(--bl)}
+.btn-sm{padding:7px 13px;font-size:.78rem}
+.btn-block{width:100%;margin-top:10px}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-ghost{background:none;border:none;color:var(--bl);font-size:.78rem;font-weight:600;cursor:pointer;
+  font-family:'Inter',sans-serif;padding:4px 8px;border-radius:var(--r3)}
+.btn-ghost:hover{background:var(--bl-light)}
+
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--bl-light);color:var(--bld);
+  font-size:.74rem;font-weight:600;padding:2px 9px;border-radius:99px}
+.chip.gn{background:var(--gn-light);color:#15803d}
+.chip.am{background:var(--am-light);color:#92400e}
+.chip.sl{background:var(--sl-light);color:#0e7490}
+.chip.ud{background:var(--br2);color:var(--tx3)}
+.local-chip{background:var(--bl-light);color:var(--bld);font-size:.7rem;font-weight:600;
+  padding:1px 8px;border-radius:99px}
+
+.empty{text-align:center;padding:38px 18px;color:var(--tx3)}
+.empty .ico{font-size:2rem;margin-bottom:8px;opacity:.6}
+.empty p{font-size:.86rem;line-height:1.5}
+
+.search-box{position:relative;margin-bottom:12px}
+.search-box input{padding-left:38px}
+.search-ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:.9rem;opacity:.5}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;
+  align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 14px}
+.overlay.show{display:flex}
+.modal{background:var(--sf);border-radius:var(--r);width:100%;max-width:470px;padding:22px;
+  box-shadow:var(--sh2);margin:auto}
+.modal-generar{max-width:560px}
+.gen-sub{font-size:.8rem;font-weight:600;color:var(--bl);margin:-6px 0 12px}
+.btn-wa{background:#25D366;color:#fff;border:none}
+.btn-wa:hover{background:#1da851}
+.btn-wa:disabled{background:#cbd5e1;cursor:default}
+.gen-wa-aviso{font-size:.74rem;color:var(--tx3);margin-top:8px;line-height:1.4}
+.campo-ayuda{font-size:.71rem;color:var(--tx3);margin-top:4px;line-height:1.35}
+/* Hora límite del proveedor, con su urgencia */
+.lim-chip{font-size:.66rem;font-weight:700;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.lim-chip.ok{background:rgba(255,255,255,.22);color:#fff}
+.lim-chip.pronto{background:#fef3c7;color:#92400e}
+.lim-chip.pasada{background:#fee2e2;color:#991b1b}
+.lim-barra{display:flex;align-items:center;gap:8px;padding:9px 16px;font-size:.78rem;font-weight:600}
+.lim-barra.pronto{background:#fffbeb;color:#92400e;border-bottom:1px solid var(--am-mid)}
+.lim-barra.pasada{background:#fef2f2;color:#991b1b;border-bottom:1px solid #fca5a5}
+.hist-acc{display:flex;gap:8px;flex-wrap:wrap}
+.hist-acc>.btn{flex:1;min-width:150px}
+.hist-undo{background:none;border:1px solid var(--rj,#fca5a5);color:#b91c1c;border-radius:var(--r3);
+  padding:9px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap}
+.hist-undo:hover{background:#fef2f2}
+.hist-undo:disabled{opacity:.5;cursor:default}
+.modal-drag{display:block;width:38px;height:4px;background:var(--br);border-radius:99px;margin:0 auto 14px}
+.modal-title{font-size:1.05rem;font-weight:700;margin-bottom:16px}
+.modal-footer{display:flex;gap:9px;margin-top:18px}
+.modal-footer .btn{flex:1}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(90px);
+  background:var(--tx);color:#fff;padding:12px 20px;border-radius:99px;font-size:.85rem;font-weight:500;
+  box-shadow:var(--sh2);z-index:300;transition:transform .28s;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+#sinc-chip{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:350;display:none;
+  background:var(--tx);color:#fff;font-size:.72rem;font-weight:600;padding:5px 13px;border-radius:99px;
+  box-shadow:var(--sh2);opacity:.92}
+#sinc-chip.show{display:block}
+
+#loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:400;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px}
+#load-error{display:none;max-width:430px;background:var(--sf);border:1px solid #fca5a5;
+  border-radius:var(--r);padding:18px 20px;font-size:.82rem;line-height:1.5;color:var(--tx)}
+#load-error.show{display:block}
+#load-error b{display:block;margin-bottom:8px;color:#b91c1c;font-size:.9rem}
+#load-error ol{margin:8px 0 12px 18px}
+#load-error li{margin-bottom:4px}
+#load-error code{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:.78rem}
+.spinner{width:36px;height:36px;border:3px solid var(--br);border-top-color:var(--bl);
+  border-radius:50%;animation:giro .8s linear infinite}
+@keyframes giro{to{transform:rotate(360deg)}}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2563eb">
+<link rel="apple-touch-icon" href="icono-192.png">
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="spinner" id="load-spin"></div>
+  <div id="load-txt" style="color:var(--tx3);font-size:.85rem">Cargando…</div>
+  <div id="load-error"></div>
+</div>
+
+<header>
+  <span class="header-logo">🛒</span>
+  <div>
+    <div class="header-title">InTeks Pedidos</div>
+    <div class="header-sub">Gestión de proveedores · <span class="header-ver">v7.7</span></div>
+  </div>
+  <div class="header-date" id="fecha-hoy"></div>
+</header>
+
+<div class="alerta-banner" id="alerta-banner">
+  <span class="ico">📅</span>
+  <div id="alerta-texto"></div>
+</div>
+
+<div class="nav-wrap">
+<nav>
+  <button class="active" data-sec="hoy" onclick="irA('hoy',this)"><span class="nav-lbl">Hoy</span>
+    <span class="badge" id="bdg-hoy" style="display:none"></span></button>
+  <button data-sec="anotar" onclick="irA('anotar',this)"><span class="nav-lbl">Anotar</span>
+    <span class="badge" id="bdg-anotar" style="display:none"></span></button>
+  <button data-sec="historial" onclick="irA('historial',this)"><span class="nav-lbl">Historial</span></button>
+  <button id="btn-mas" data-sec="mas" onclick="toggleMas(event)"><span class="nav-lbl">Más ▾</span></button>
+</nav>
+<div class="mas-panel" id="mas-panel">
+  <button onclick="irA('avisos')"><span class="mas-n">Avisos</span><span class="mas-d">Recordatorios de Telegram</span></button>
+  <button onclick="irA('catalogo')"><span class="mas-n">Catálogo</span><span class="mas-d">Productos, precios y proveedores</span></button>
+  <button onclick="irA('proveedores')"><span class="mas-n">Proveedores</span><span class="mas-d">Días de pedido y contacto</span></button>
+  <button onclick="irA('ajustes')"><span class="mas-n">Ajustes</span><span class="mas-d">Locales, Telegram, archivo y limpieza</span></button>
+</div>
+</div>
+
+<style>
+/* ── HOY ── */
+.hoy-seccion-titulo{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-size:.8rem;font-weight:700;color:var(--gn);text-transform:uppercase;letter-spacing:.6px;
+  padding:0 0 8px;margin:22px 0 12px;border-bottom:2px solid var(--gn-mid)}
+.hoy-seccion-titulo:first-child{margin-top:0}
+.hoy-sec-pend{color:var(--am);border-bottom-color:var(--am-mid)}
+.hoy-sec-remoto{color:var(--sl);border-bottom-color:#a5f3fc}
+.hoy-sec-sub{display:block;font-size:.68rem;font-weight:500;opacity:.75;text-transform:none;letter-spacing:0;margin-top:1px}
+.hoy-sec-count{font-size:.72rem;font-weight:600;opacity:.8;text-transform:none;letter-spacing:0;white-space:nowrap}
+.hoy-grupo{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);
+  margin-bottom:13px;overflow:hidden;box-shadow:var(--sh)}
+.hoy-grupo.saltado{opacity:.62}
+/* Bloque de proveedores ya resueltos: visible para quien abra la app */
+.res-bloque{background:#f0fdf4;border:1.5px solid #86efac;border-radius:var(--r);margin-bottom:13px;overflow:hidden}
+.res-tit{background:#dcfce7;color:#14532d;padding:9px 15px;font-size:.74rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.4px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.res-tit small{display:block;font-size:.67rem;font-weight:500;text-transform:none;letter-spacing:0;opacity:.8;margin-top:1px}
+.res-count{background:#16a34a;color:#fff;border-radius:99px;padding:1px 9px;font-size:.7rem;flex-shrink:0}
+.res-fila{display:flex;align-items:center;gap:9px;padding:11px 15px;border-top:1px solid #bbf7d0;flex-wrap:wrap}
+.res-nom{font-size:.9rem;font-weight:600;flex:1;min-width:110px;color:#14532d}
+.res-tag{font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap}
+.res-tag.res-no{background:#fee2e2;color:#991b1b}
+.res-tag.res-ped{background:#fff;color:#15803d;border:1px solid #86efac}
+.res-hora{font-size:.72rem;color:#15803d;opacity:.85;white-space:nowrap}
+.res-undo{background:none;border:1px solid #86efac;color:#15803d;border-radius:var(--r3);
+  padding:5px 11px;font-size:.73rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+.res-undo:hover{background:#dcfce7}
+.res-undo:disabled{opacity:.5;cursor:default}
+/* Cada local es un pedido suyo: se arma y se manda por separado */
+.ped-bloque{border:1px solid var(--br);border-radius:var(--r3);margin-bottom:12px;overflow:hidden;background:var(--sf)}
+.ped-bloque:last-child{margin-bottom:0}
+.ped-bloque.listo{border-color:#86efac;background:#f7fef9}
+.ped-local-head{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:var(--bg);border-bottom:1px solid var(--br);padding:8px 14px}
+.ped-bloque.listo .ped-local-head{background:#dcfce7;border-bottom-color:#86efac}
+.ped-local-nom{font-size:.82rem;font-weight:700;color:var(--tx)}
+.ped-local-nom::before{content:"📍";margin-right:5px;font-size:.78rem}
+.ped-local-n{font-size:.71rem;color:var(--tx3);white-space:nowrap}
+.ped-cuerpo{padding:12px 14px}
+.ped-nota{margin-top:11px}
+.ped-nota label{display:block;font-size:.73rem;font-weight:600;color:var(--tx2);margin-bottom:4px}
+.ped-solo{border:none;border-radius:0;margin-bottom:0;background:none}
+.ped-solo>.ped-cuerpo{padding:0}
+/* Anotar y los pedidos, lado a lado: anotas y lo ves entrar */
+.anotar-split{display:grid;grid-template-columns:minmax(330px,420px) minmax(0,1fr);
+  gap:22px;align-items:start}
+.anotar-form{position:sticky;top:12px}
+.anotar-pedidos{min-width:0}
+.anotar-split .sec-title{margin-top:0}
+/* Esta pantalla lleva dos columnas: necesita más ancho que el resto */
+#sec-anotar{max-width:1180px}
+@media (min-width:901px){
+  /* En columna estrecha, producto y cantidad uno debajo del otro:
+     en paralelo no cabe ni el nombre del producto */
+  .anotar-form .fila{grid-template-columns:1fr;gap:14px}
+}
+@media (max-width:900px){
+  .anotar-split{grid-template-columns:1fr;gap:4px}
+  .anotar-form{position:static}
+  .anotar-pedidos .sec-title{margin-top:18px}
+}
+.hoy-header{background:linear-gradient(135deg,#1e40af,#2563eb);color:#fff;padding:13px 17px;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.hoy-header-left h3{font-size:1rem;font-weight:700}
+.hoy-header-left .meta{font-size:.73rem;opacity:.85;margin-top:2px}
+.hoy-header-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.metodo-badge{font-size:.68rem;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.metodo-local{background:#dcfce7;color:#15803d}
+.metodo-remoto{background:#e0f2fe;color:#0369a1}
+.aviso-dia{font-size:.66rem;background:var(--am-light);color:#92400e;border:1px solid var(--am-mid);
+  padding:2px 8px;border-radius:99px;font-weight:600;white-space:nowrap}
+.hoy-nota-prov{background:#fffbeb;border-left:3px solid var(--am);padding:9px 14px;font-size:.8rem;
+  color:#78350f;display:flex;gap:8px;align-items:flex-start;line-height:1.45}
+.hoy-nota-prov .nota-ico{flex-shrink:0;margin-top:1px}
+.hoy-body{padding:15px 18px}
+.hoy-item{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--br2);flex-wrap:wrap}
+.hoy-item:last-of-type{border-bottom:none}
+.hoy-item .nombre{flex:1;min-width:0;font-size:.88rem;font-weight:500}
+.hoy-item .detalle{font-size:.78rem;color:var(--tx2);white-space:nowrap}
+.hoy-nota-order-ro{background:var(--am-light);border-left:3px solid var(--am);padding:8px 11px;
+  margin:10px 0;border-radius:0 var(--r3) var(--r3) 0;font-size:.79rem;color:#78350f;line-height:1.45}
+.hoy-vacio{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0;flex-wrap:wrap}
+.hoy-vacio-txt{font-size:.84rem;color:var(--tx2);font-weight:500}
+.hoy-vacio-btns{display:flex;gap:7px;flex-wrap:wrap}
+.hoy-saltado .hoy-vacio-txt{color:var(--tx3);font-style:italic}
+.hoy-quien{font-size:.72rem;color:var(--tx3);margin-top:2px}
+.hoy-acciones{display:flex;gap:8px;align-items:stretch;margin-top:8px;flex-wrap:wrap}
+.generar-btn{width:100%;margin-top:10px;background:var(--bl);color:#fff;border:none;border-radius:var(--r3);
+  padding:11px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+.generar-btn:hover{background:var(--bld)}
+.confirmar-btn{flex:1;background:var(--gn);color:#fff;border:none;border-radius:var(--r3);padding:11px;
+  font-size:.85rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+.confirmar-btn:hover{background:#15803d}
+.confirmar-btn:disabled{background:#94a3b8;cursor:not-allowed}
+
+/* ── TOTALES ── */
+.totales{border-top:1px solid var(--br);margin-top:12px;padding-top:10px;font-variant-numeric:tabular-nums}
+.tot-fila{display:flex;justify-content:space-between;align-items:baseline;font-size:.8rem;color:var(--tx2);padding:2px 0}
+.tot-final{font-size:.92rem;font-weight:700;color:var(--tx);border-top:1px solid var(--br);margin-top:5px;padding-top:7px}
+.tot-aviso{font-size:.72rem;color:#92400e;background:var(--am-light);border:1px solid var(--am-mid);
+  border-radius:var(--r3);padding:6px 10px;margin-top:8px;line-height:1.4}
+
+/* ── ANOTAR ── */
+.cant-row{display:flex;gap:6px}
+.cant-num{flex:1;min-width:0}
+.cant-tipo{flex:0 0 auto;width:auto;min-width:112px}
+.upc-hint{font-size:.74rem;color:var(--am);font-weight:600;min-height:16px;margin-top:5px}
+.combo{position:relative}
+.combo input[type=text]{padding-right:32px}
+.combo input:disabled{background:var(--br2);color:var(--tx3);cursor:not-allowed}
+.combo-x{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:22px;height:22px;
+  border:none;border-radius:50%;cursor:pointer;background:var(--br);color:var(--tx2);font-size:1rem;
+  line-height:1;display:flex;align-items:center;justify-content:center;font-family:inherit;padding:0}
+.combo-x:hover{background:var(--rd);color:#fff}
+.combo-lista{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:60;background:var(--sf);
+  border:1px solid var(--br);border-radius:var(--r2);box-shadow:var(--sh2);max-height:270px;overflow-y:auto}
+.combo-lista.show{display:block}
+.combo-item{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:10px 13px;
+  cursor:pointer;border-bottom:1px solid var(--br2);font-size:.85rem}
+.combo-item:last-child{border-bottom:none}
+.combo-item:hover,.combo-item.on{background:var(--bl-light)}
+.combo-nom{flex:1;min-width:0;font-weight:500}
+.combo-cod{background:var(--pu-light);color:#6d28d9;border-radius:var(--r3);padding:1px 6px;
+  font-size:.66rem;font-weight:700;margin-right:6px}
+.combo-extra{display:flex;gap:6px;flex-shrink:0}
+.combo-meta{font-size:.68rem;color:var(--tx3);background:var(--br2);padding:1px 7px;border-radius:99px;white-space:nowrap}
+.combo-vacio{padding:14px;text-align:center;font-size:.82rem;color:var(--tx3);
+  display:flex;flex-direction:column;gap:9px;align-items:center}
+.combo-vacio button{border:1px solid var(--bl-mid);background:var(--bl-light);color:var(--bld);
+  border-radius:var(--r3);padding:6px 14px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+.lista-pend{background:var(--gn-light);border:1px solid var(--gn-mid);border-radius:var(--r2);
+  padding:13px 15px;margin-top:14px}
+.lista-pend-tit{font-size:.78rem;font-weight:700;color:#15803d;text-transform:uppercase;
+  letter-spacing:.4px;margin-bottom:9px}
+.lista-pend-item{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:.84rem;
+  border-bottom:1px solid rgba(22,163,74,.12)}
+.lista-pend-item:last-of-type{border-bottom:none}
+.lista-pend-item .nom{flex:1;min-width:0;font-weight:500}
+.lista-pend-x{border:none;background:rgba(220,38,38,.1);color:var(--rd);width:22px;height:22px;
+  border-radius:50%;cursor:pointer;font-size:.9rem;line-height:1;flex-shrink:0;font-family:inherit}
+
+/* ── ARMAR ── */
+.vista-toggle{display:flex;gap:6px;margin-bottom:14px}
+.vista-btn{flex:1;padding:10px 6px;border:1.5px solid var(--br);background:var(--sf);border-radius:var(--r3);
+  font-size:.78rem;font-weight:600;color:var(--tx3);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
+.vista-btn.on{background:var(--bl);border-color:var(--bl);color:#fff}
+.vista-aviso{background:var(--bl-light);border:1px solid var(--bl-mid);color:var(--bld);padding:9px 13px;
+  border-radius:var(--r3);font-size:.76rem;margin-bottom:12px;line-height:1.45}
+.grupo-proveedor{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);
+  margin-bottom:13px;overflow:hidden;box-shadow:var(--sh)}
+.grupo-header{background:linear-gradient(to right,var(--br2),var(--sf));padding:13px 16px;
+  display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--br);gap:8px}
+.grupo-header h3{font-size:.92rem;font-weight:700}
+.grupo-local .grupo-header{background:linear-gradient(to right,var(--sl-light),var(--sf));border-bottom-color:#a5f3fc}
+.grupo-local .grupo-header h3{color:#0e7490}
+.grupo-body{padding:15px 17px}
+.sub-local{margin-bottom:12px}
+.sub-local:last-of-type{margin-bottom:0}
+.sub-local-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.7rem;
+  font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;padding:5px 0 6px;
+  border-bottom:1px solid var(--br);margin-bottom:4px}
+.sub-local-n{font-weight:500;text-transform:none;letter-spacing:0;color:var(--tx3)}
+.qty-ctrl{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.qty-ctrl input{width:58px;text-align:center;padding:6px 4px;font-size:.85rem;font-weight:600}
+.qty-ctrl input.guardando{border-color:var(--bl);background:var(--bl-light)}
+.qty-ctrl input.error{border-color:var(--rd);background:var(--rd-light)}
+.qty-btn{width:30px;height:30px;border:1.5px solid var(--br);background:var(--sf);border-radius:var(--r3);
+  cursor:pointer;font-size:1rem;font-weight:700;color:var(--tx2);line-height:1;font-family:inherit}
+.qty-btn:hover{border-color:var(--bl);color:var(--bl)}
+.nota-estado{font-size:.72rem;margin-top:5px;min-height:14px;color:var(--tx3)}
+.nota-estado.bien{color:var(--gn);font-weight:600}
+.nota-estado.mal{color:var(--rd);font-weight:600}
+
+/* ── CATÁLOGO ── */
+.filtros-row{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+.filtros-row select{flex:1;font-size:.82rem;padding:9px 11px}
+.filtro-btn{flex-shrink:0;border:1.5px solid var(--br);background:var(--sf);color:var(--tx2);
+  border-radius:var(--r3);padding:9px 14px;font-size:.78rem;font-weight:600;cursor:pointer;
+  font-family:'Inter',sans-serif;white-space:nowrap}
+.filtro-btn.on{background:var(--am);border-color:var(--am);color:#fff}
+.prod-card{border:1px solid var(--br);border-radius:var(--r2);margin-bottom:11px;overflow:hidden;background:var(--sf)}
+.prod-card-head{display:flex;align-items:flex-start;gap:8px;padding:12px 14px;
+  background:linear-gradient(to right,var(--br2),var(--sf));border-bottom:1px solid var(--br)}
+.prod-info{flex:1;min-width:0}
+.prod-info h4{font-size:.9rem;font-weight:600;line-height:1.35}
+.prod-nota-txt{font-size:.74rem;color:var(--tx3);margin-top:3px;line-height:1.4}
+.prod-ahorro{font-size:.74rem;color:var(--gn);font-weight:600;margin-top:4px}
+.sum-lista{padding:4px 14px 11px}
+.sum-fila{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 0;
+  border-bottom:1px solid var(--br2);font-size:.8rem}
+.sum-fila:last-of-type{border-bottom:none}
+.sum-fila.barato .sum-precio{color:var(--gn);font-weight:700}
+.sum-prov{font-weight:600;color:var(--tx);display:flex;align-items:center;gap:6px}
+.sum-mejor{background:var(--gn-light);color:#15803d;border:1px solid var(--gn-mid);font-size:.6rem;
+  font-weight:700;padding:1px 6px;border-radius:99px;text-transform:uppercase;letter-spacing:.3px}
+.sum-precio{margin-left:auto;color:var(--tx2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sum-precio i{color:var(--tx3);font-size:.74rem}
+.sum-btn{padding:2px 7px;font-size:.72rem}
+.sum-vacio{font-size:.78rem;color:var(--tx3);font-style:italic;padding:8px 0}
+.sum-add{width:100%;margin-top:8px;border:1px dashed var(--br);background:none;border-radius:var(--r3);
+  padding:8px;font-size:.78rem;color:var(--tx2);cursor:pointer;font-family:'Inter',sans-serif;font-weight:600}
+.sum-add:hover{border-color:var(--bl);color:var(--bl);background:var(--bl-light)}
+.prod-cod{background:var(--pu-light);color:#6d28d9;border-radius:var(--r3);padding:1px 6px;
+  font-size:.68rem;font-weight:700}
+.precio-row{display:flex;gap:6px}
+.precio-row input{flex:1;min-width:0}
+.precio-row select{flex:0 0 auto;width:auto;min-width:104px}
+.precio-hint{font-size:.74rem;color:var(--tx3);min-height:16px;margin:-6px 0 12px}
+.precio-hint.on{color:var(--bld);font-weight:500}
+
+/* Editor de proveedores dentro del modal de producto */
+.sumed{border:1px solid var(--br);border-radius:var(--r2);padding:12px;margin-bottom:9px;background:var(--br2)}
+.sumed-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.sumed-tit{font-size:.78rem;font-weight:700;color:var(--tx2)}
+.sumed-x{border:none;background:rgba(220,38,38,.1);color:var(--rd);width:24px;height:24px;
+  border-radius:50%;cursor:pointer;font-size:1rem;line-height:1;font-family:inherit;flex-shrink:0}
+
+/* ── PROVEEDORES ── */
+.prov-row{display:flex;align-items:flex-start;gap:11px;padding:12px 0;border-bottom:1px solid var(--br2);flex-wrap:wrap}
+.prov-row:last-of-type{border-bottom:none}
+.prov-avatar{width:34px;height:34px;border-radius:50%;background:var(--bl);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0}
+.prov-info{flex:1;min-width:0}
+.prov-info h4{font-size:.9rem;font-weight:600}
+.prov-info p{font-size:.75rem;color:var(--tx3);margin-top:2px;line-height:1.45}
+.prov-nota{background:var(--am-light);border-left:3px solid var(--am);padding:7px 10px;margin-top:7px;
+  border-radius:0 var(--r3) var(--r3) 0;font-size:.76rem;color:#78350f;line-height:1.4}
+.dias-sel{display:flex;gap:4px;flex-wrap:wrap}
+.dia-btn{flex:1;min-width:34px;padding:9px 2px;border:1.5px solid var(--br);background:var(--sf);
+  border-radius:var(--r3);font-size:.68rem;font-weight:700;color:var(--tx3);cursor:pointer;
+  font-family:'Inter',sans-serif;letter-spacing:.3px}
+.dia-btn.on{background:var(--bl);border-color:var(--bl);color:#fff}
+.local-list{margin-bottom:10px}
+.local-item{display:flex;gap:8px;margin-bottom:7px;align-items:center}
+.local-item input{flex:1}
+.local-item input:first-child{flex:1}
+.local-item input:nth-child(2){flex:2}
+.local-x{border:none;background:rgba(220,38,38,.1);color:var(--rd);width:28px;height:28px;
+  border-radius:50%;cursor:pointer;font-size:1rem;line-height:1;flex-shrink:0;font-family:inherit}
+
+/* ── AVISOS ── */
+.av-dias{display:flex;gap:4px;flex-wrap:wrap}
+.av-dia{flex:1;min-width:34px;padding:9px 2px;border:1.5px solid var(--br);background:var(--sf);
+  border-radius:var(--r3);font-size:.68rem;font-weight:700;color:var(--tx3);cursor:pointer;
+  font-family:'Inter',sans-serif;letter-spacing:.3px}
+.av-dia.on{background:var(--bl);border-color:var(--bl);color:#fff}
+.av-horas-add{display:flex;gap:8px;align-items:center;margin-bottom:9px}
+.av-horas-add input{flex:1}
+.av-horas-add .btn{flex-shrink:0;margin-top:0;white-space:nowrap}
+.av-horas{display:flex;gap:6px;flex-wrap:wrap;min-height:28px;align-items:center}
+.av-horas-vacio{font-size:.74rem;color:var(--tx3);font-style:italic}
+.av-hora-chip{display:inline-flex;align-items:center;gap:5px;background:var(--bl-light);color:var(--bld);
+  border:1px solid var(--bl-mid);padding:3px 5px 3px 10px;border-radius:99px;font-size:.76rem;
+  font-weight:700;font-variant-numeric:tabular-nums}
+.av-hora-chip button{border:none;background:rgba(37,99,235,.18);color:var(--bld);cursor:pointer;
+  width:17px;height:17px;border-radius:50%;font-size:.78rem;line-height:1;display:flex;
+  align-items:center;justify-content:center;font-family:inherit;padding:0}
+.av-modo{display:flex;gap:6px}
+.av-modo-btn{flex:1;padding:10px 6px;border:1.5px solid var(--br);background:var(--sf);border-radius:var(--r3);
+  font-size:.76rem;font-weight:600;color:var(--tx3);cursor:pointer;font-family:'Inter',sans-serif}
+.av-modo-btn.on{background:var(--bl);border-color:var(--bl);color:#fff}
+.av-btn-row{display:flex;gap:8px;align-items:center;margin-top:14px}
+.av-btn-row .btn-block{margin-top:0}
+.av-item{display:flex;align-items:center;gap:12px;background:var(--sf);border:1px solid var(--br);
+  border-radius:var(--r2);padding:13px 15px;margin-bottom:9px;flex-wrap:wrap}
+.av-item.off{opacity:.55}
+.av-item-info{flex:1;min-width:0}
+.av-item-txt{font-size:.87rem;font-weight:500;line-height:1.4}
+.av-item-meta{display:flex;gap:9px;margin-top:4px;font-size:.72rem;color:var(--tx3);flex-wrap:wrap;align-items:center}
+.av-hora{background:var(--bl-light);color:var(--bld);font-weight:700;padding:1px 7px;
+  border-radius:99px;font-variant-numeric:tabular-nums}
+.av-fecha-chip{background:var(--pu-light);color:#6d28d9;padding:1px 8px;border-radius:99px;font-weight:700}
+.av-item-acc{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap}
+.bor-del-btn{border:1px solid rgba(220,38,38,.3);background:var(--rd-light);color:var(--rd);
+  border-radius:var(--r3);padding:4px 10px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+
+/* ── HISTORIAL ── */
+.hist-archivo-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:12px;flex-wrap:wrap}
+#hist-archivo-info{font-size:.74rem;color:var(--tx3)}
+.hist-pedido{border:1px solid var(--br);border-radius:var(--r2);margin-bottom:10px;overflow:hidden;background:var(--sf)}
+.hist-ped-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer}
+.hist-ped-head:hover{background:var(--br2)}
+.hist-ped-ident{flex:1;min-width:0}
+.hist-ped-titulo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hist-num{background:var(--bl-light);color:var(--bld);font-weight:700;font-size:.72rem;padding:2px 8px;
+  border-radius:99px;font-variant-numeric:tabular-nums}
+.hist-ped-prov{font-size:.92rem;font-weight:600}
+.hist-ped-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;font-size:.72rem;color:var(--tx3);
+  font-variant-numeric:tabular-nums;align-items:center}
+.hist-total{background:var(--gn-light);color:#15803d;border-radius:99px;padding:1px 8px;font-weight:700}
+.hist-ped-flecha{color:var(--tx3);font-size:.9rem;flex-shrink:0}
+.hist-ped-body{display:none;padding:2px 14px 14px;border-top:1px solid var(--br2)}
+.hist-ped-body.show{display:block}
+.hist-linea{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--br2)}
+.hist-linea:last-of-type{border-bottom:none}
+.hist-linea-prod{font-size:.85rem;font-weight:500;flex:1;min-width:0}
+.hist-precio{border:1px solid var(--bl-mid);background:var(--bl-light);color:var(--bld);border-radius:99px;
+  padding:2px 10px;font-size:.7rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;
+  white-space:nowrap;font-variant-numeric:tabular-nums}
+.hist-precio.falta{background:var(--am-light);border-color:var(--am-mid);color:#92400e}
+.hist-ped-nota{background:var(--am-light);border-left:3px solid var(--am);padding:8px 11px;margin-top:9px;
+  border-radius:0 var(--r3) var(--r3) 0;font-size:.78rem;color:#78350f;line-height:1.45}
+.mprecio-prod{background:var(--br2);border:1px solid var(--br);border-radius:var(--r3);padding:10px 13px;
+  margin-bottom:14px;display:flex;flex-direction:column;gap:3px}
+.mprecio-prod b{font-size:.9rem}
+.mprecio-prod span{font-size:.75rem;color:var(--tx3)}
+.check-row{display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:.79rem;color:var(--tx2);
+  line-height:1.45;text-transform:none;font-weight:400;letter-spacing:0;margin-bottom:4px}
+.check-row input{width:auto;flex-shrink:0;margin-top:2px}
+
+/* ── AJUSTES ── */
+.tg-estado{font-size:.78rem;padding:8px 12px;border-radius:var(--r3);margin-bottom:12px;font-weight:500}
+.tg-estado.ok{background:var(--gn-light);color:#15803d;border:1px solid var(--gn-mid)}
+.tg-estado.falta{background:var(--am-light);color:#92400e;border:1px solid var(--am-mid)}
+.tg-section{border:1px solid var(--br);border-radius:var(--r3);padding:16px;margin-top:4px;background:var(--br2)}
+.tg-btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tg-btn-row .btn{flex:1;min-width:120px}
+.aj-archivo-info{font-size:.78rem;color:var(--tx2);background:var(--br2);border:1px solid var(--br);
+  border-radius:var(--r3);padding:8px 12px;margin-bottom:12px}
+.gen-local-sel{display:flex;gap:10px;align-items:flex-end;margin-bottom:14px}
+.gen-local-sel select{flex:1;font-size:.85rem;padding:8px 10px}
+.gen-local-sel label{margin-bottom:5px}
+#texto-generado{background:var(--br2);border:1px solid var(--br);border-radius:var(--r3);padding:14px;
+  font-size:.83rem;line-height:1.55;white-space:pre-wrap;max-height:260px;overflow-y:auto;
+  font-family:'Inter',sans-serif;margin-bottom:12px}
+
+/* ── LIMPIADOR ── */
+.lim-g{background:var(--sf);border:1px solid var(--br);border-radius:var(--r2);padding:14px;margin-bottom:10px}
+.lim-g.hecho{opacity:.45}
+.lim-tit{font-weight:700;font-size:.95rem;margin-bottom:3px}
+.lim-sub{font-size:.76rem;color:var(--tx3);margin-bottom:10px}
+.lim-tag{display:inline-block;font-size:.63rem;font-weight:700;padding:2px 8px;border-radius:99px;
+  text-transform:uppercase;letter-spacing:.3px;margin-left:6px}
+.lim-tag.multi{background:var(--bl-light);color:var(--bld)}
+.lim-tag.igual{background:var(--rd-light);color:#b91c1c}
+.lim-op{display:flex;align-items:flex-start;gap:9px;padding:9px 10px;border-radius:7px;cursor:pointer;
+  border:1.5px solid transparent}
+.lim-op:hover{background:var(--br2)}
+.lim-op.sel{background:var(--bl-light);border-color:var(--bl-mid)}
+.lim-op input{width:auto;margin-top:3px;flex-shrink:0}
+.lim-opc{flex:1;min-width:0}
+.lim-opn{font-weight:600;font-size:.86rem}
+.lim-opm{font-size:.74rem;color:var(--tx3);margin-top:2px}
+.lim-pill{background:var(--gn-light);color:#15803d;border-radius:99px;padding:1px 8px;
+  font-size:.68rem;font-weight:700;white-space:nowrap}
+.lim-pill.cero{background:var(--rd-light);color:#b91c1c}
+.lim-res{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;padding-top:9px;border-top:1px solid var(--br2)}
+.lim-res b{font-size:.72rem;color:var(--tx2);font-weight:600;width:100%}
+.lim-chip{background:var(--br2);border-radius:99px;padding:2px 9px;font-size:.73rem;color:var(--tx2)}
+.lim-acc{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.lim-ok{font-size:.79rem;color:var(--gn);font-weight:600;margin-top:9px}
+
+@media (max-width:480px){
+  body{font-size:14px}
+  nav button{min-width:56px;padding:10px 3px 8px}
+  nav button .nav-lbl{font-size:.7rem}
+  .mas-panel{left:8px;right:8px;max-width:none}
+  .header-sub,.header-ver{display:none}
+  .sec{padding:14px 12px}
+  .card{padding:14px}
+  .fila{grid-template-columns:1fr}
+  .btn{min-height:44px;font-size:.88rem}
+  select,input,textarea{font-size:16px}   /* evita el zoom de iOS */
+  .modal{width:96vw;max-width:none}
+  .hoy-header{flex-direction:column;align-items:flex-start;gap:8px}
+  .hoy-header-right{align-items:flex-start;width:100%;flex-direction:row;flex-wrap:wrap}
+  .hoy-vacio{flex-direction:column;align-items:stretch;gap:9px}
+  .hoy-vacio-btns{width:100%}
+  .hoy-vacio-btns .btn{flex:1}
+  .hoy-acciones{flex-direction:column}
+  .hoy-acciones .btn,.hoy-acciones .confirmar-btn{width:100%}
+  .vista-btn{font-size:.74rem;padding:11px 4px}
+  .sub-local-head{font-size:.66rem}
+  .combo-lista{max-height:230px}
+  .combo-item{padding:12px 13px}
+  .combo-extra{display:none}
+  .precio-row,.av-horas-add{flex-direction:column;align-items:stretch}
+  .precio-row select{width:100%;min-width:0}
+  .av-horas-add .btn{width:100%}
+  .filtros-row{flex-wrap:wrap}
+  .filtros-row select{flex-basis:100%}
+  .filtro-btn{flex:1}
+  .prod-card-head{flex-wrap:wrap}
+  .sum-fila{gap:5px}
+  .sum-precio{margin-left:0;flex-basis:100%}
+  .hist-archivo-row{flex-direction:column;align-items:stretch}
+  .hist-archivo-row .btn{width:100%}
+  .hist-ped-meta{gap:8px;font-size:.68rem}
+  .hist-linea-prod{flex-basis:100%}
+  .hist-precio{flex-basis:100%;text-align:center;padding:6px 10px}
+  .av-item-acc{width:100%}
+  .av-item-acc .btn,.av-item-acc .bor-del-btn{flex:1}
+  .av-dia,.dia-btn{min-width:0;padding:11px 2px}
+  .tg-btn-row .btn{min-width:0;flex-basis:100%}
+}
+</style>
+
+<!-- ═══ HOY ═══ -->
+<div class="sec active" id="sec-hoy">
+  <div class="sec-title">Hoy</div>
+  <div id="hoy-lista"></div>
+</div>
+
+<!-- ═══ ANOTAR ═══ -->
+<div class="sec" id="sec-anotar">
+<div class="anotar-split">
+<div class="anotar-form">
+  <div class="sec-title">Anotar productos</div>
+  <div class="card">
+    <div class="mb">
+      <label>Proveedor</label>
+      <select id="a-prov" onchange="filtrarProds()"><option value="">— Selecciona —</option></select>
+    </div>
+    <div id="a-prov-info" style="display:none;margin-bottom:12px"></div>
+    <div class="fila">
+      <div>
+        <label>Producto</label>
+        <div style="display:flex;gap:6px">
+          <div class="combo" style="flex:1">
+            <input type="text" id="a-prod-buscar" placeholder="Elige el proveedor primero" disabled
+              autocomplete="off" oninput="buscarProducto()" onfocus="buscarProducto()" onkeydown="teclaProducto(event)">
+            <input type="hidden" id="a-prod">
+            <button type="button" class="combo-x" id="a-prod-x" onclick="limpiarProducto()" style="display:none">×</button>
+            <div class="combo-lista" id="a-prod-lista"></div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="abrirModalProd()" style="flex-shrink:0;padding:0 11px" title="Nuevo producto">+</button>
+        </div>
+      </div>
+      <div>
+        <label>Cantidad</label>
+        <div class="cant-row">
+          <input type="number" id="a-cant" class="cant-num" min="1" value="1" oninput="actualizarUPCHint()">
+          <select id="a-tipo" class="cant-tipo" onchange="actualizarUPCHint()">
+            <option value="unidades">Unidades</option>
+          </select>
+        </div>
+        <div class="upc-hint" id="upc-hint"></div>
+      </div>
+    </div>
+    <div class="mb">
+      <label>Local destino</label>
+      <select id="a-local"></select>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="anyadirALista()">Añadir a la lista</button>
+
+    <div class="lista-pend" id="anotar-lista-wrap" style="display:none">
+      <div class="lista-pend-tit" id="anotar-lista-tit"></div>
+      <div id="anotar-lista-items"></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-success" style="flex:1" id="btn-guardar-todos" onclick="guardarTodos()">Añadir al pedido</button>
+        <button class="btn btn-outline btn-sm" onclick="limpiarListaAnotar()">Vaciar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="anotar-pedidos">
+  <div class="sec-title">Pedidos en marcha</div>
+  <div class="vista-toggle">
+    <button class="vista-btn on" id="vista-prov" onclick="cambiarVistaArmar('proveedor')">Por proveedor</button>
+    <button class="vista-btn" id="vista-local" onclick="cambiarVistaArmar('local')">Por local</button>
+  </div>
+  <div id="lista-armar"></div>
+  <div class="sec-title" style="margin-top:22px">Borradores sueltos</div>
+  <div class="card" style="padding:10px 16px"><div id="lista-borradores"></div></div>
+</div>
+</div>
+</div>
+
+<!-- ═══ AVISOS ═══ -->
+<div class="sec" id="sec-avisos">
+  <div class="sec-title">Avisos por Telegram</div>
+  <div class="card">
+    <div style="font-size:.78rem;color:var(--tx2);margin-bottom:14px;line-height:1.5">
+      Recordatorios propios que te llegan por Telegram a la hora que elijas.
+      Sin días marcados se envía todos los días.
+    </div>
+    <div class="mb">
+      <label>Texto del aviso</label>
+      <input id="av-texto" placeholder="Ej: contar la caja y cuadrar el cierre">
+    </div>
+    <div class="mb">
+      <label>Horarios</label>
+      <div class="av-horas-add">
+        <input type="time" id="av-hora-nueva" value="09:00">
+        <button class="btn btn-outline btn-sm" onclick="anyadirHora()">+ Añadir hora</button>
+      </div>
+      <div class="av-horas" id="av-horas"></div>
+    </div>
+    <div class="mb">
+      <label>Cuándo se repite</label>
+      <div class="av-modo">
+        <button type="button" class="av-modo-btn on" id="av-modo-dias" onclick="cambiarModoAviso('dias')">Días de la semana</button>
+        <button type="button" class="av-modo-btn" id="av-modo-fecha" onclick="cambiarModoAviso('fecha')">Un día concreto</button>
+      </div>
+    </div>
+    <div class="mb" id="av-bloque-dias">
+      <label>Días <span style="font-weight:400;text-transform:none;color:var(--tx3)">— ninguno = todos</span></label>
+      <div class="av-dias" id="av-dias"></div>
+    </div>
+    <div class="mb" id="av-bloque-fecha" style="display:none">
+      <label>Fecha</label>
+      <input type="date" id="av-fecha">
+    </div>
+    <input type="hidden" id="av-id">
+    <div class="av-btn-row">
+      <button class="btn btn-success btn-block" id="av-guardar" onclick="guardarAviso()">Crear aviso</button>
+      <button class="btn btn-outline btn-sm" id="av-cancelar" style="display:none" onclick="cancelarEdicionAviso()">Cancelar</button>
+    </div>
+  </div>
+  <div class="sec-title" style="margin-top:20px">Avisos guardados</div>
+  <div id="av-lista"></div>
+</div>
+
+<!-- ═══ CATÁLOGO ═══ -->
+<div class="sec" id="sec-catalogo">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div class="sec-title" style="margin:0">Catálogo</div>
+    <button class="btn btn-primary btn-sm" onclick="abrirModalProd()">+ Nuevo</button>
+  </div>
+  <div class="search-box">
+    <span class="search-ico">🔍</span>
+    <input type="text" id="cat-buscar" placeholder="Buscar por nombre, proveedor o código…" oninput="filtrarCatalogo()">
+  </div>
+  <div class="filtros-row">
+    <select id="cat-prov" onchange="filtrarCatalogo()"><option value="">Todos los proveedores</option></select>
+    <button class="filtro-btn" id="cat-sinprecio" onclick="alternarSinPrecio(this)">Sin precio</button>
+  </div>
+  <div style="font-size:.76rem;color:var(--tx3);margin-bottom:10px" id="cat-count"></div>
+  <div id="cat-lista"></div>
+</div>
+
+<!-- ═══ PROVEEDORES ═══ -->
+<div class="sec" id="sec-proveedores">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div class="sec-title" style="margin:0">Proveedores</div>
+    <button class="btn btn-primary btn-sm" onclick="abrirModalProv()">+ Nuevo</button>
+  </div>
+  <div class="search-box">
+    <span class="search-ico">🔍</span>
+    <input type="text" id="prov-buscar" placeholder="Buscar proveedor…" oninput="renderProveedores()">
+  </div>
+  <div class="card" style="padding:10px 16px"><div id="prov-lista"></div></div>
+</div>
+
+<!-- ═══ HISTORIAL ═══ -->
+<div class="sec" id="sec-historial">
+  <div class="sec-title">Historial de pedidos</div>
+  <div class="search-box">
+    <span class="search-ico">🔍</span>
+    <input type="text" id="hist-buscar" placeholder="Buscar por nº pedido, proveedor, producto, fecha…" oninput="renderHistorial()">
+  </div>
+  <div class="hist-archivo-row">
+    <span id="hist-archivo-info">Mostrando los últimos 2 meses</span>
+    <button class="btn btn-outline btn-sm" id="btn-archivo" onclick="alternarArchivo(this)">Ver también lo archivado</button>
+  </div>
+  <div class="card" style="padding:10px 16px"><div id="hist-lista"></div></div>
+</div>
+
+<!-- ═══ AJUSTES ═══ -->
+<div class="sec" id="sec-ajustes">
+  <div class="sec-title">Ajustes</div>
+
+  <div class="card">
+    <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Locales</div>
+    <div style="font-size:.78rem;color:var(--tx2);margin-bottom:14px">Nombre y dirección de cada local</div>
+    <div class="local-list" id="local-list"></div>
+    <button class="btn btn-outline btn-sm" onclick="addLocal()" style="width:100%;margin-bottom:10px">+ Añadir local</button>
+    <button class="btn btn-success btn-block" onclick="guardarLocales()" style="margin-top:0">Guardar locales</button>
+  </div>
+
+  <div class="card">
+    <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Limpiar duplicados</div>
+    <div style="font-size:.78rem;color:var(--tx2);margin-bottom:14px;line-height:1.5">
+      Busca productos y proveedores repetidos. Al fusionar, <b>los proveedores de
+      todas las filas pasan al que elijas</b>: no se pierde ninguno. Hace copia antes de tocar nada.
+    </div>
+    <button class="btn btn-outline btn-block" style="margin-top:0" onclick="abrirLimpiador(this)">Buscar duplicados</button>
+    <div id="lim-lista" style="margin-top:14px"></div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Mantenimiento</div>
+    <div style="font-size:.78rem;color:var(--tx2);margin-bottom:14px;line-height:1.5">
+      Los pedidos realizados de hace más de 2 meses se mueven solos a la hoja
+      <b>Pedidos Archivo</b> cada domingo. No se borra nada.
+    </div>
+    <div id="aj-archivo-info" class="aj-archivo-info">—</div>
+    <button class="btn btn-outline btn-block btn-sm" style="margin-top:0" onclick="archivarAhora(this)">Archivar ahora</button>
+  </div>
+
+  <div class="card">
+    <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Telegram</div>
+    <div style="font-size:.78rem;color:var(--tx2);margin-bottom:12px">Avisos automáticos de los pedidos del día</div>
+    <div id="tg-estado" class="tg-estado">Comprobando…</div>
+
+    <div class="tg-section" style="margin-bottom:12px">
+      <label>Horarios de los avisos</label>
+      <div class="av-horas-add">
+        <input type="time" id="tg-hora-nueva" value="07:30">
+        <button class="btn btn-outline btn-sm" onclick="anyadirHoraTg()">+ Añadir</button>
+      </div>
+      <div class="av-horas" id="tg-horas"></div>
+      <button class="btn btn-success btn-block btn-sm" onclick="guardarHorariosTg(this)">Guardar horarios</button>
+      <div style="font-size:.72rem;color:var(--tx3);margin-top:8px;line-height:1.45">
+        Al guardar se reinstalan los avisos automáticos con estos horarios.
+      </div>
+    </div>
+
+    <div class="tg-section">
+      <div class="mb">
+        <label>Bot Token</label>
+        <input type="password" id="aj-tg-token" placeholder="Dejar vacío para no cambiarlo" autocomplete="off">
+      </div>
+      <div class="mb">
+        <label>Chat ID</label>
+        <input type="text" id="aj-tg-chatid" placeholder="Ej: 1579646041">
+        <div style="font-size:.72rem;color:var(--tx3);margin-top:5px;line-height:1.45">
+          Tu Chat ID lo da <b>@userinfobot</b>. Antes escribe <b>/start</b> a tu propio bot
+          o no podrá enviarte nada.
+        </div>
+      </div>
+      <div class="tg-btn-row">
+        <button class="btn btn-primary btn-sm" onclick="guardarTelegramConfig()">Guardar</button>
+        <button class="btn btn-outline btn-sm" onclick="probarTelegram()">Probar conexión</button>
+        <button class="btn btn-outline btn-sm" onclick="probarAvisoReal()">Enviar aviso real</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Conexión con otras apps</div>
+    <div style="font-size:.78rem;color:var(--tx2);margin-bottom:12px">Para conectar la app de escritorio a esta hoja</div>
+    <div id="api-estado" class="tg-estado">Comprobando…</div>
+    <div id="api-instrucciones" class="tg-section" style="display:none;font-size:.78rem;line-height:1.5;margin-bottom:12px">
+      Abre tu hoja de cálculo, pestaña <b>Conexión</b>, y copia el código de la celda <b>B2</b>.
+      Pégalo en la app de escritorio. Para cambiarlo, borra las celdas <b>A2</b> y <b>B2</b>
+      y vuelve a esta pantalla.
+    </div>
+    <button id="api-crear" class="btn btn-primary btn-sm" onclick="crearCodigoApi(this)">Crear código</button>
+  </div>
+</div>
+
+<!-- MODAL PROVEEDOR -->
+<div class="overlay" id="modal-prov">
+  <div class="modal">
+    <span class="modal-drag"></span>
+    <div class="modal-title" id="mprov-titulo">Nuevo proveedor</div>
+    <input type="hidden" id="mprov-id">
+    <div class="mb"><label>Nombre</label><input id="mprov-nombre" placeholder="Ej: Coca Cola"></div>
+    <div class="mb"><label>Contacto (teléfono / email)</label><input id="mprov-contacto" placeholder="Opcional"></div>
+    <div class="fila">
+      <div>
+        <label>Método de pedido</label>
+        <select id="mprov-metodo">
+          <option>Pedido en el Local</option><option>WhatsApp</option>
+          <option>Telefono</option><option>Email</option><option>Web</option>
+        </select>
+      </div>
+      <div>
+        <label>Frecuencia</label>
+        <select id="mprov-frec">
+          <option>Semanal</option><option>Bisemanal</option>
+          <option>Triemanal (3×/sem)</option><option>Quincenal</option>
+        </select>
+      </div>
+    </div>
+    <div class="mb">
+      <label>Hora límite para pedir</label>
+      <input type="time" id="mprov-limite">
+      <div class="campo-ayuda">Hasta cuándo acepta pedidos ese día. Déjalo vacío si no tiene hora fija.</div>
+    </div>
+    <div class="mb"><label>Días de pedido</label><div class="dias-sel" id="mprov-dias-pedido"></div></div>
+    <div class="mb"><label>Días de entrega</label><div class="dias-sel" id="mprov-dias-entrega"></div></div>
+    <div class="mb"><label>Notas</label><textarea id="mprov-nota" style="min-height:52px" placeholder="Opcional"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-prov')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarProv()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRODUCTO (con varios proveedores) -->
+<div class="overlay" id="modal-prod">
+  <div class="modal">
+    <span class="modal-drag"></span>
+    <div class="modal-title" id="mprod-titulo">Nuevo producto</div>
+    <input type="hidden" id="mprod-id">
+    <div class="mb"><label>Nombre del producto</label><input id="mprod-nombre" placeholder="Ej: Clipper Fresa 500ML"></div>
+    <div class="fila">
+      <div>
+        <label>Unidad</label>
+        <select id="mprod-unidad">
+          <option value="Unidad">Unidad</option><option value="Caja">Caja</option>
+          <option value="Pack">Pack</option><option value="Docena">Docena</option><option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div>
+        <label>Notas</label>
+        <input id="mprod-notas" placeholder="Ej: solo los martes">
+      </div>
+    </div>
+
+    <label style="margin-top:4px">Proveedores que lo traen</label>
+    <div style="font-size:.74rem;color:var(--tx3);margin:-2px 0 10px;line-height:1.45">
+      Puedes añadir todos los que quieras, cada uno con su código y su precio.
+    </div>
+    <div id="mprod-sums"></div>
+    <button class="sum-add" onclick="addSumEditor()">+ Añadir proveedor</button>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-prod')">Cancelar</button>
+      <button class="btn btn-primary" id="mprod-guardar" onclick="guardarProd(this)">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR BORRADOR -->
+<div class="overlay" id="modal-editar-bor">
+  <div class="modal">
+    <span class="modal-drag"></span>
+    <div class="modal-title">Editar borrador</div>
+    <input type="hidden" id="meb-id">
+    <div class="mb"><label>Proveedor</label><select id="meb-prov" onchange="onMebProvChange()"></select></div>
+    <div class="mb"><label>Producto</label><select id="meb-prod" onchange="actualizarMebHint()"></select></div>
+    <div class="fila">
+      <div>
+        <label>Cantidad</label>
+        <div class="cant-row">
+          <input type="number" id="meb-cant" class="cant-num" min="1" value="1" oninput="actualizarMebHint()">
+          <select id="meb-tipo" class="cant-tipo" onchange="actualizarMebHint()"><option value="unidades">Unidades</option></select>
+        </div>
+      </div>
+      <div><label>Local destino</label><select id="meb-local"></select></div>
+    </div>
+    <div class="upc-hint" id="meb-hint"></div>
+    <div class="mb"><label>Notas</label><textarea id="meb-notas" style="min-height:52px" placeholder="Opcional"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-editar-bor')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicionBorrador()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRECIO DE LÍNEA -->
+<div class="overlay" id="modal-precio">
+  <div class="modal">
+    <span class="modal-drag"></span>
+    <div class="modal-title">Precio de coste</div>
+    <div class="mprecio-prod" id="mprecio-prod"></div>
+    <input type="hidden" id="mprecio-id"><input type="hidden" id="mprecio-cant"><input type="hidden" id="mprecio-upc">
+    <div class="fila">
+      <div>
+        <label>Precio</label>
+        <div class="precio-row">
+          <input type="number" id="mprecio-valor" step="0.01" min="0" placeholder="0,00" oninput="actualizarPrecioLineaHint()">
+          <select id="mprecio-tipo" onchange="actualizarPrecioLineaHint()">
+            <option value="unidad">€ / unidad</option><option value="caja">€ / caja</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>IGIC</label>
+        <select id="mprecio-impuesto" onchange="actualizarPrecioLineaHint()">
+          <option value="0">0 %</option><option value="3">3 %</option><option value="7">7 %</option>
+          <option value="9.5">9,5 %</option><option value="15">15 %</option><option value="20">20 %</option>
+        </select>
+      </div>
+    </div>
+    <div class="precio-hint" id="mprecio-hint"></div>
+    <label class="check-row">
+      <input type="checkbox" id="mprecio-ficha" checked>
+      <span>Guardar también en la ficha del producto, para los próximos pedidos</span>
+    </label>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-precio')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPrecioLinea(this)">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GENERAR TEXTO -->
+<div class="overlay" id="modal-generar">
+  <div class="modal modal-generar">
+    <span class="modal-drag"></span>
+    <div class="modal-title">Texto del pedido</div>
+    <div class="gen-sub" id="gen-titulo-prov"></div>
+    <div class="gen-local-sel">
+      <div style="flex:1"><label>Local</label><select id="gen-local" onchange="actualizarTexto()"></select></div>
+    </div>
+    <div id="gen-dir-preview" style="font-size:.76rem;color:var(--tx3);margin:-8px 0 12px"></div>
+    <div id="gen-productos" style="margin-bottom:14px"></div>
+    <div class="mb">
+      <label>Nota para el proveedor</label>
+      <input type="text" id="gen-nota" placeholder="Ej: confirmar precio, llamar antes…" oninput="actualizarTexto()">
+      <label class="check-row" style="margin-top:10px">
+        <input type="checkbox" id="gen-precios" onchange="actualizarTexto()">
+        <span>Incluir precios de coste en el mensaje</span>
+      </label>
+    </div>
+    <div id="texto-generado"></div>
+    <div id="gen-wa-aviso" class="gen-wa-aviso" style="display:none"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-generar')">Cerrar</button>
+      <button class="btn btn-primary" onclick="copiarTexto(this)">Copiar</button>
+      <button class="btn btn-wa" id="gen-wa" onclick="abrirWhatsApp(this)">Abrir en WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="sinc-chip">Actualizando…</div>
+
+<script>
+// Hace que Index.html (el mismo de la web) funcione como PWA en el móvil:
+// google.script.run.<función>(...) → fetch POST al /exec de Apps Script con la clave guardada.
+// Mismo contrato que escritorio/web/shim_escritorio.js. Sin dependencias, ES5.
+(function () {
+  // Las escrituras las rellena el constructor de la PWA (no tocar a mano esta línea).
+  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos"];
+  var CLAVE = 'inteks_conexion_web';
+  var RE_URL = /^https:\/\/script\.google\.com\/.+\/exec$/;
+
+  // ---- Conexión guardada ----
+  function decodificarCodigo(texto) {
+    var d;
+    try {
+      d = JSON.parse(atob(String(texto).replace(/\s+/g, '')));
+    } catch (e) {
+      throw new Error('Código no válido');
+    }
+    if (!d || typeof d.u !== 'string' || !RE_URL.test(d.u) || typeof d.t !== 'string' || !d.t) {
+      throw new Error('Código no válido');
+    }
+    return { u: d.u, t: d.t };
+  }
+
+  function leerConexion() {
+    try {
+      var c = JSON.parse(localStorage.getItem(CLAVE));
+      if (c && typeof c.u === 'string' && c.u && typeof c.t === 'string' && c.t) return c;
+    } catch (e) { /* sin conexión guardada */ }
+    return null;
+  }
+
+  // ---- Pequeñas ayudas de DOM (estilos en línea) ----
+  function estilo(e, o) { for (var k in o) { if (o.hasOwnProperty(k)) e.style[k] = o[k]; } return e; }
+  function crear(tag, id, o, texto) {
+    var e = document.createElement(tag);
+    if (id) e.id = id;
+    estilo(e, o || {});
+    if (texto) e.textContent = texto;
+    return e;
+  }
+  function cuandoListo(f) {
+    if (document.body) f();
+    else document.addEventListener('DOMContentLoaded', f);
+  }
+
+  // ---- Pantalla de conexión ----
+  var pantalla = null;
+  function construirPantalla() {
+    pantalla = crear('div', 'pantalla-conexion', {
+      display: 'none', position: 'fixed', top: '0', left: '0', right: '0', bottom: '0',
+      zIndex: '100000', background: '#fff', flexDirection: 'column', alignItems: 'stretch',
+      justifyContent: 'center', padding: '24px', boxSizing: 'border-box', fontFamily: 'sans-serif'
+    });
+    pantalla.appendChild(crear('h2', null, { margin: '0 0 8px' }, 'Conectar con InTeks Pedidos'));
+    pantalla.appendChild(crear('p', null, { margin: '0 0 12px', color: '#444' },
+      'Pega aquí el código de conexión que te dieron.'));
+    var area = crear('textarea', 'conexion-codigo', {
+      width: '100%', height: '140px', boxSizing: 'border-box', fontSize: '14px', marginBottom: '12px'
+    });
+    pantalla.appendChild(area);
+    var error = crear('div', 'conexion-error', { color: '#b00020', minHeight: '20px', marginBottom: '12px' });
+    pantalla.appendChild(error);
+    var boton = crear('button', 'btn-conectar', {
+      padding: '14px', fontSize: '16px', border: '0', borderRadius: '8px', background: '#1a73e8', color: '#fff'
+    }, 'Conectar');
+    boton.onclick = conectar;
+    pantalla.appendChild(boton);
+    document.body.appendChild(pantalla);
+  }
+
+  function conectar() {
+    var area = document.getElementById('conexion-codigo');
+    var error = document.getElementById('conexion-error');
+    try {
+      var c = decodificarCodigo(area.value);
+      localStorage.setItem(CLAVE, JSON.stringify({ u: c.u, t: c.t }));
+    } catch (e) {
+      error.textContent = e && e.message ? e.message : 'Código no válido';
+      return;
+    }
+    error.textContent = '';
+    location.reload();
+  }
+
+  function mostrarConexion(aviso) {
+    cuandoListo(function () {
+      if (!pantalla) construirPantalla();
+      document.getElementById('conexion-error').textContent = aviso || '';
+      pantalla.style.display = 'flex';
+    });
+  }
+
+  // ---- Botón fijo «Cambiar conexión» y barra de sin red ----
+  var barra = null;
+  function barraSinRed(visible) {
+    cuandoListo(function () {
+      if (!barra) {
+        if (!visible) return;
+        barra = crear('div', 'barra-sin-red', {
+          display: 'none', position: 'fixed', top: '0', left: '0', right: '0', zIndex: '99999',
+          background: '#b00020', color: '#fff', textAlign: 'center', padding: '6px',
+          fontSize: '13px', fontFamily: 'sans-serif'
+        }, 'Sin conexión: solo lectura');
+        document.body.appendChild(barra);
+      }
+      barra.style.display = visible ? 'block' : 'none';
+    });
+  }
+
+  cuandoListo(function () {
+    var b = crear('button', 'btn-conexion', {
+      position: 'fixed', right: '8px', bottom: '8px', zIndex: '99998', fontSize: '11px',
+      padding: '4px 8px', border: '1px solid #ccc', borderRadius: '6px', background: '#f5f5f5',
+      color: '#555', opacity: '0.8'
+    }, 'Cambiar conexión');
+    b.onclick = function () { mostrarConexion(''); };
+    document.body.appendChild(b);
+    if (!leerConexion()) mostrarConexion('');
+  });
+
+  window.addEventListener('online', function () { barraSinRed(false); });
+  window.addEventListener('offline', function () { barraSinRed(true); });
+
+  // ---- Llamadas ----
+  function esEscritura(fn) { return ESCRITURAS.indexOf(fn) !== -1; }
+  function nuevoIdOp() { return 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
+
+  function llamar(fn, args) {
+    var con = leerConexion();
+    if (!con) return Promise.reject(new Error('Sin conexión configurada'));
+    var escritura = esEscritura(fn);
+    if (escritura && navigator.onLine === false) {
+      return Promise.reject(new Error('Sin conexión: no se puede guardar'));
+    }
+    var cuerpo = { token: con.t, fn: fn, args: args };
+    if (escritura) { cuerpo.idOp = nuevoIdOp(); cuerpo.hora = Date.now(); }
+    return fetch(con.u, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(cuerpo)
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      barraSinRed(false);
+      if (res && res.ok) return res.resultado;
+      if (res && res.codigo === 'TOKEN') mostrarConexion('La clave ya no es válida');
+      throw new Error((res && res.msg) || 'Error desconocido');
+    }, function () {
+      // Fallo de red (fetch o lectura del JSON): solo lectura hasta que vuelva.
+      barraSinRed(true);
+      throw new Error('Sin conexión');
+    });
+  }
+
+  // ---- google.script.run (mismo encadenado que el shim de escritorio) ----
+  function runner(ok, fallo, usuario) {
+    var r = {
+      withSuccessHandler: function (f) { return runner(f, fallo, usuario); },
+      withFailureHandler: function (f) { return runner(ok, f, usuario); },
+      withUserObject: function (o) { return runner(ok, fallo, o); }
+    };
+    return new Proxy(r, {
+      get: function (obj, nombre) {
+        if (nombre in obj) return obj[nombre];
+        if (typeof nombre !== 'string' || nombre === 'then') return undefined;
+        return function () {
+          var args = Array.prototype.slice.call(arguments);
+          llamar(nombre, args).then(function (valor) {
+            if (ok) { try { ok(valor, usuario); } catch (e) { console.error(e); } }
+          }, function (err) {
+            if (fallo) { try { fallo(err, usuario); } catch (e2) { console.error(e2); } }
+            else console.error(err);
+          });
+        };
+      }
+    });
+  }
+
+  window.google = { script: { run: runner(null, null, undefined) } };
+  window.InteksWeb = { decodificarCodigo: decodificarCodigo };
+})();
+
+</script>
+<script>
+window.onerror = function(msg, url, linea, col){
+  try {
+    var ov = document.getElementById('loading-overlay');
+    if (ov) ov.style.display = 'none';
+    var d = document.createElement('pre');
+    d.style.cssText = 'position:fixed;inset:0;z-index:9999;margin:0;padding:18px;'
+      + 'background:#fef2f2;color:#991b1b;font:12px/1.5 ui-monospace,monospace;'
+      + 'white-space:pre-wrap;overflow:auto';
+    d.textContent = 'La app no pudo arrancar.\n\n' + msg
+      + '\n\nlinea ' + linea + ', columna ' + col
+      + '\n\nPasa esta pantalla entera a quien lleve el mantenimiento.';
+    (document.body || document.documentElement).appendChild(d);
+  } catch(e) {}
+  return false;
+};
+// ════════════════════════════════════════════════════════════
+// ESTADO
+// ════════════════════════════════════════════════════════════
+const APP = { proveedores:[], productos:[], catalogo:[], borradores:[], listos:[],
+              historial:[], avisos:[], skips:{}, locales:[] };
+
+const DIAS_SEM   = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const DIAS_LISTA = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+
+let _anotarLista = [];
+let _vistaArmar  = 'proveedor';
+let _verArchivo  = false;
+let _catSinPrecio = false;
+let _genProv = '', _genLocal = '', _genItems = [], _genEnviado = {};
+let _avHoras = [], _avModo = 'dias', _tgHoras = [];
+let _prodMarcado = -1;
+let _sumSeq = 0, _sumQuitar = [];
+const CLAVE_LISTA = 'inteks_lista_pendiente';
+
+// Ignora acentos y mayúsculas al comparar
+function sinAcentos(t){
+  return String(t==null?'':t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function esc(t){
+  return String(t==null?'':t).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+}
+// Para meter un texto en un onclick="f('...')": primero se escapa para JS y luego
+// para el atributo HTML (que va entre comillas dobles).
+function js(t){ return String(t==null?'':t).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+// Para pasar un texto como argumento en un onclick='f(...)' (atributo entre comillas
+// simples): se convierte en literal JSON y se escapa para el atributo.
+function jsonAttr(t){ return esc(JSON.stringify(String(t==null?'':t))).replace(/'/g,'&#39;'); }
+function eur(n){
+  return (Number(n)||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+}
+function fechaISO(d){
+  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+}
+
+function showToast(msg, ms){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(()=>t.classList.remove('show'), ms||2600);
+}
+function cerrarModal(id){ document.getElementById(id).classList.remove('show'); }
+
+// ════════════════════════════════════════════════════════════
+// CARGA
+// ════════════════════════════════════════════════════════════
+// Arrancar con DOMContentLoaded a secas es frágil: si el evento ya ha
+// ocurrido cuando corre este script, el listener no se dispara nunca y la
+// app se queda en "Cargando…" sin llamar al servidor ni avisar de nada.
+function arrancarApp(){
+  const hoy = new Date();
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+                 'septiembre','octubre','noviembre','diciembre'];
+  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  document.getElementById('fecha-hoy').textContent =
+    dias[hoy.getDay()]+', '+hoy.getDate()+' '+meses[hoy.getMonth()];
+
+  // Si el proyecto de Apps Script no compila, google.script.run no contesta
+  // nada: ni éxito ni fallo. Sin esto el usuario se queda mirando la rueda.
+  _vigilante = setTimeout(() => fallaCarga(null), 25000);
+
+  // Primero lo que se vio la ultima vez (al instante) y, por detras, lo
+  // del servidor. Si no cambio nada, la pantalla ni parpadea.
+  const previo = leerCache();
+  if (previo){
+    _deCache = true;
+    volcar(previo.d, true);
+    document.getElementById('sinc-chip').classList.add('show');
+  }
+
+  google.script.run
+    .withSuccessHandler(d => {
+      document.getElementById('sinc-chip').classList.remove('show');
+      if (_deCache && previo && d && typeof d === 'object'){
+        _deCache = false;
+        if (_vigilante){ clearTimeout(_vigilante); _vigilante = null; }
+        const igual = k => JSON.stringify(d[k]) === JSON.stringify(previo.d[k]);
+        const fijo = ['proveedores','catalogo','avisos','locales','tgConfig','archivo'].every(igual);
+        const movil = ['borradores','listos','skips'].every(igual);
+        if (fijo && movil) return;                      // nada nuevo
+        if (fijo){                                      // solo se movieron pedidos
+          APP.borradores = d.borradores || [];
+          APP.listos     = d.listos     || [];
+          APP.skips      = d.skips      || {};
+          renderHoy(); renderBorradores(); renderArmar();
+          renderAlertaBanner(); actualizarBadges();
+          guardarCache();
+          return;
+        }
+      }
+      _deCache = false;
+      volcar(d);
+    })
+    .withFailureHandler(e => fallaCarga(e))
+    .getAppData();
+}
+
+// ── Copia local de la ultima carga ──
+const CLAVE_CACHE = 'inteks_cache_v76';
+let _deCache = false, _ultTg = null, _ultArchivo = null;
+function leerCache(){
+  try {
+    const o = JSON.parse(localStorage.getItem(CLAVE_CACHE) || 'null');
+    if (o && o.d && Array.isArray(o.d.catalogo) && Array.isArray(o.d.proveedores)) return o;
+  } catch(e){}
+  return null;
+}
+function guardarCache(){
+  try {
+    localStorage.setItem(CLAVE_CACHE, JSON.stringify({ t: Date.now(), d: {
+      proveedores: APP.proveedores, catalogo: APP.catalogo, borradores: APP.borradores,
+      listos: APP.listos, avisos: APP.avisos, skips: APP.skips, locales: APP.locales,
+      tgConfig: _ultTg, archivo: _ultArchivo } }));
+  } catch(e){}
+}
+
+// Una entrada por producto y proveedor, sacada del catalogo anidado
+function aplanarCatalogo(cat){
+  const out = [];
+  (cat || []).forEach(p => {
+    const base = { ID_Producto: p.ID_Producto, Nombre_Producto: p.Nombre_Producto,
+                   Unidad: p.Unidad, Notas_Producto: p.Notas_Producto };
+    const ss = p.suministros || [];
+    if (!ss.length){
+      out.push(Object.assign({ ID_Proveedor:'', Unidades_Por_Caja:1, Codigo_Proveedor:'',
+                               Precio_Coste:0, Impuesto:0, Unidad_Proveedor:'', ID_Suministro:'' }, base));
+      return;
+    }
+    ss.forEach(s => out.push(Object.assign({ ID_Proveedor: s.Proveedor,
+      Unidades_Por_Caja: s.Unidades_Por_Caja, Codigo_Proveedor: s.Codigo_Proveedor,
+      Precio_Coste: s.Precio_Coste, Impuesto: s.Impuesto,
+      Unidad_Proveedor: s.Unidad_Proveedor, ID_Suministro: s.ID_Suministro }, base)));
+  });
+  return out;
+}
+
+let _vigilante = null;
+
+if (document.readyState === 'loading'){
+  window.addEventListener('DOMContentLoaded', arrancarApp);
+} else {
+  arrancarApp();          // el DOM ya estaba listo
+}
+
+function fallaCarga(e){
+  if (_vigilante){ clearTimeout(_vigilante); _vigilante = null; }
+  if (_deCache){
+    // Ya hay algo en pantalla: no se tapa, pero se avisa de que es viejo
+    _deCache = false;
+    const chip = document.getElementById('sinc-chip');
+    chip.textContent = 'Sin conexión — datos de la última vez';
+    chip.classList.add('show');
+    showToast('No se pudo actualizar. Recarga la página para reintentar.', 6000);
+    return;
+  }
+  const spin = document.getElementById('load-spin');
+  const txt  = document.getElementById('load-txt');
+  const box  = document.getElementById('load-error');
+  if (spin) spin.style.display = 'none';
+  if (txt)  txt.style.display = 'none';
+  if (!box) return;
+  const detalle = e && e.message
+    ? '<p>El servidor respondió: <code>'+esc(e.message)+'</code></p>'
+    : '<p>El servidor no ha respondido nada en 25 segundos. Eso suele significar que '
+      + 'el proyecto de Apps Script no compila, y entonces ninguna llamada contesta.</p>';
+  box.innerHTML = '<b>No se pudieron cargar los datos</b>' + detalle
+    + '<ol><li>Abre la hoja → Extensiones → Apps Script.</li>'
+    + '<li>Elige <code>initSheets</code> arriba y pulsa Ejecutar.</li>'
+    + '<li>Si sale un error en rojo, cópialo: ahí está la causa.</li>'
+    + '<li>Si tienes archivos sueltos de versiones viejas '
+    + '(<code>Telegram.gs</code>, <code>LimpiarDuplicados.gs</code>, <code>Fix_dobleGuardado.gs</code>), '
+    + 'bórralos: una constante repetida entre archivos rompe el proyecto entero.</li></ol>'
+    + '<button class="btn btn-primary btn-block" onclick="location.reload()">Reintentar</button>';
+  box.classList.add('show');
+}
+
+let _listaCargada = false;
+function ponerDatos(d){
+  APP.proveedores = d.proveedores || [];
+  APP.catalogo    = d.catalogo    || [];
+  APP.productos   = aplanarCatalogo(APP.catalogo);
+  APP.borradores  = d.borradores  || [];
+  APP.listos      = d.listos      || [];
+  APP.avisos      = d.avisos      || [];
+  APP.skips       = d.skips       || {};
+  APP.locales     = d.locales     || [];
+  _ultTg = d.tgConfig || null; _ultArchivo = d.archivo || null;
+  pintarEstadoTelegram(d.tgConfig);
+  pintarEstadoApi(d.apiConfigurado);
+  pintarInfoArchivo(d.archivo);
+}
+
+function volcar(d, deCache){
+  if (!deCache && _vigilante){ clearTimeout(_vigilante); _vigilante = null; }
+  document.getElementById('loading-overlay').style.display = 'none';
+  if (!d || typeof d !== 'object'){
+    showToast('No llegaron los datos. Recarga la página.', 6000);
+    return;
+  }
+  ponerDatos(d);
+  if (!_listaCargada){ _listaCargada = true; cargarListaAnotar(); }
+  renderAll();
+  if (!deCache) guardarCache();
+}
+
+// El historial no viaja en la carga: se pide al entrar en su pestaña
+let _histPend = true;
+
+// Recarga ligera para las acciones de pedidos: no toca catálogo ni historial
+function recargarPedidos(cb){
+  google.script.run
+    .withSuccessHandler(d => {
+      if (d && typeof d === 'object'){
+        APP.borradores = d.borradores || [];
+        APP.listos     = d.listos     || [];
+        APP.skips      = d.skips      || {};
+      }
+      renderHoy();
+      renderBorradores();
+      renderArmar();
+      renderAlertaBanner();
+      actualizarBadges();
+      guardarCache();
+      if (cb) cb();
+    })
+    .withFailureHandler(() => recargarDatos(cb))
+    .getPedidosData();
+}
+
+function recargarDatos(cb){
+  google.script.run.withSuccessHandler(d => {
+    if (!d || typeof d !== 'object') return;
+    ponerDatos(d);
+    // El historial ya no viene aqui: se marca para releerlo, o se relee
+    // ahora mismo si es la pestaña que se esta viendo
+    _histPend = true;
+    renderAll();
+    guardarCache();
+    if (document.getElementById('sec-historial')?.classList.contains('active')) pedirHistorial();
+    if (cb) cb();
+  }).getAppData();
+}
+
+function renderAll(){
+  renderLocalesSel();
+  renderProvSel();
+  renderDiasSelectores();
+  renderHoy();
+  renderBorradores();
+  renderArmar();
+  renderAvisos();
+  filtrarCatalogo();
+  renderProveedores();
+  renderHistorial();
+  renderAlertaBanner();
+  actualizarBadges();
+}
+
+// Las cuatro secciones de configuración viven dentro de "Más"
+const SEC_MAS = ['avisos','catalogo','proveedores','ajustes'];
+
+function irA(id, btn){
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  const sec = document.getElementById('sec-'+id);
+  if (sec) sec.classList.add('active');
+  cerrarMas();
+  // La pestaña que se marca es la suya, o "Más" si la sección vive dentro
+  if (id === 'historial' && _histPend) pedirHistorial();
+  const clave = SEC_MAS.indexOf(id) !== -1 ? 'mas' : id;
+  const tab = document.querySelector('nav button[data-sec="'+clave+'"]');
+  if (tab) tab.classList.add('active');
+  else if (btn) btn.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function pedirHistorial(){
+  _histPend = false;
+  const el = document.getElementById('hist-lista');
+  if (el && !(APP.historial||[]).length)
+    el.innerHTML = '<div class="empty"><p>Cargando historial…</p></div>';
+  google.script.run
+    .withSuccessHandler(gs => { APP.historial = gs || []; renderHistorial(); })
+    .withFailureHandler(() => { _histPend = true; showToast('No se pudo cargar el historial'); })
+    .getHistorialGrupos(_verArchivo === true);
+}
+
+function toggleMas(ev){
+  if (ev) ev.stopPropagation();
+  document.getElementById('mas-panel').classList.toggle('show');
+}
+function cerrarMas(){ document.getElementById('mas-panel').classList.remove('show'); }
+
+// Un toque fuera, o Escape, cierra el desplegable
+document.addEventListener('click', e => {
+  if (!e.target.closest('#mas-panel') && !e.target.closest('#btn-mas')) cerrarMas();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarMas(); });
+
+function actualizarBadges(){
+  const b = APP.borradores.length, l = APP.listos.length;
+  const ba = document.getElementById('bdg-anotar'), bh = document.getElementById('bdg-hoy');
+  if (ba){ ba.textContent = b; ba.style.display = b ? '' : 'none'; }
+  if (bh){ bh.textContent = l; bh.style.display = l ? '' : 'none'; }
+}
+
+// ════════════════════════════════════════════════════════════
+// AYUDAS DE DATOS
+// ════════════════════════════════════════════════════════════
+function localNombre(l){ return typeof l === 'string' ? l : (l.nombre||''); }
+function localDir(l){ return typeof l === 'string' ? '' : (l.direccion||''); }
+
+function fichaDe(nombreProducto, proveedor){
+  const ps = APP.productos || [];
+  return ps.find(p => p.Nombre_Producto === nombreProducto && p.ID_Proveedor === proveedor)
+      || ps.find(p => p.Nombre_Producto === nombreProducto) || null;
+}
+function getUPC(prod, prov){
+  const f = fichaDe(prod, prov);
+  return f ? (Number(f.Unidades_Por_Caja)||1) : 1;
+}
+function getUnidad(prod, prov){
+  const f = fichaDe(prod, prov);
+  return f ? (f.Unidad||'Unidad') : 'Unidad';
+}
+function unidadLabel(unidad, cant){
+  const u = String(unidad||'Unidad').toLowerCase();
+  const plural = cant === 1 ? u : (u.endsWith('z') ? u.slice(0,-1)+'ces' : u+'s');
+  return cant+' '+plural;
+}
+// La nota del pedido puede estar en cualquiera de sus líneas
+function notaDe(items){
+  const c = (items||[]).find(b => b && String(b.Notas||'').trim());
+  return c ? String(c.Notas).trim() : '';
+}
+// Minutos que faltan para la hora límite. Negativo = ya pasó. null = sin hora.
+function minutosHastaLimite(hora){
+  const m = String(hora||'').match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const n = new Date();
+  return (Number(m[1])*60 + Number(m[2])) - (n.getHours()*60 + n.getMinutes());
+}
+// Estado del límite de un proveedor para HOY. Mañana no hay cuenta atrás:
+// la hora es la de ese día, no la de ahora.
+function estadoLimite(p, esHoy){
+  const hora = p && p.Hora_Limite ? p.Hora_Limite : '';
+  if (!hora) return null;
+  if (!esHoy) return { hora, clase:'ok', txt:'hasta las '+hora };
+  const min = minutosHastaLimite(hora);
+  if (min === null) return null;
+  if (min < 0)   return { hora, clase:'pasada', min,
+                          txt:'Fuera de hora — cerró a las '+hora };
+  if (min <= 60) return { hora, clase:'pronto', min,
+                          txt:'Cierra a las '+hora+' — quedan '+min+' min' };
+  return { hora, clase:'ok', min, txt:'hasta las '+hora };
+}
+
+function normDia(s){ return sinAcentos(s).trim(); }
+function proveedorTocaDia(p, dia){
+  return String(p.Dias_Pedido||'').split(',').map(normDia).indexOf(normDia(dia)) !== -1;
+}
+function estadoDia(prov, iso){
+  const e = (APP.skips||{})[prov+'||'+iso];
+  if (!e) return null;
+  return (e === true) ? { tipo:'skip', hora:'' } : e;
+}
+
+function renderLocalesSel(){
+  const html = (APP.locales||[]).map(l =>
+    `<option value="${esc(localNombre(l))}">${esc(localNombre(l))}</option>`).join('');
+  ['a-local','meb-local'].forEach(id => {
+    const s = document.getElementById(id);
+    if (!s) return;
+    const v = s.value;
+    s.innerHTML = html;
+    if (v) s.value = v;
+  });
+  const ll = document.getElementById('local-list');
+  if (ll) renderLocalesEdit();
+}
+
+function renderProvSel(){
+  ['a-prov','meb-prov','cat-prov'].forEach(id => {
+    const s = document.getElementById(id);
+    if (!s) return;
+    const v = s.value;
+    const base = id === 'cat-prov' ? '<option value="">Todos los proveedores</option>'
+                                   : '<option value="">— Selecciona —</option>';
+    s.innerHTML = base + (APP.proveedores||[]).map(p =>
+      `<option value="${esc(p.Nombre)}">${esc(p.Nombre)}</option>`).join('');
+    if (v) s.value = v;
+  });
+}
+
+function renderAlertaBanner(){
+  const hoy = new Date(), man = new Date(hoy); man.setDate(hoy.getDate()+1);
+  const dHoy = DIAS_SEM[hoy.getDay()], dMan = DIAS_SEM[man.getDay()];
+  const ph = (APP.proveedores||[]).filter(p => proveedorTocaDia(p, dHoy));
+  const pm = (APP.proveedores||[]).filter(p => proveedorTocaDia(p, dMan));
+  const el = document.getElementById('alerta-banner');
+  if (!ph.length && !pm.length){ el.classList.remove('show'); return; }
+  const isoH = fechaISO(hoy), isoM = fechaISO(man);
+  let t = '';
+  // Un proveedor ya resuelto sale tachado: así nadie lo pide dos veces
+  const pinta = (lista, iso) => lista.map(p => {
+    const e = estadoDia(p.Nombre, iso);
+    if (e) return `<span class="alerta-item hecho"><b>${esc(p.Nombre)}</b>`
+         + `<span class="alerta-metodo alerta-hecho">${e.tipo==='pedido'?'ya pedido':'no se pide'}</span></span>`;
+    const local = (p.Metodo_Pedido||'').toLowerCase().includes('local');
+    const l = estadoLimite(p, iso === isoH);
+    return `<span class="alerta-item"><b>${esc(p.Nombre)}</b>`
+         + `<span class="alerta-metodo ${local?'alerta-local':'alerta-remoto'}">${local?'local':esc(p.Metodo_Pedido||'—')}</span>`
+         + (l?`<span class="alerta-metodo alerta-lim-${l.clase}">🕒 ${esc(l.hora)}</span>`:'')
+         + `</span>`;
+  }).join('');
+  const pendH = ph.filter(p => !estadoDia(p.Nombre, isoH)).length;
+  if (ph.length) t += `<div><b class="alerta-resumen">Hoy${pendH ? ' — quedan '+pendH : ' — todo resuelto'}:</b> ${pinta(ph, isoH)}</div>`;
+  if (pm.length) t += `<div style="margin-top:4px"><b class="alerta-resumen">Mañana:</b> ${pinta(pm, isoM)}</div>`;
+  document.getElementById('alerta-texto').innerHTML = t;
+  el.classList.add('show');
+}
+
+// ════════════════════════════════════════════════════════════
+// COSTES
+// ════════════════════════════════════════════════════════════
+// Usa el precio congelado en la línea; si no lo tiene, el del catálogo
+function calcularTotales(lineas){
+  let base = 0, impuestos = 0, sinPrecio = 0;
+  (lineas||[]).forEach(l => {
+    const cant = Number(l.Cantidad)||0;
+    let precio = Number(l.Precio_Unit)||0, imp = Number(l.Impuesto_Pct)||0;
+    if (!precio){
+      const f = fichaDe(l.Producto, l.Proveedor);
+      if (f){ precio = Number(f.Precio_Coste)||0; imp = Number(f.Impuesto)||0; }
+    }
+    if (!precio){ sinPrecio++; return; }
+    const b = precio*cant;
+    base += b; impuestos += b*imp/100;
+  });
+  base = Math.round(base*100)/100;
+  impuestos = Math.round(impuestos*100)/100;
+  return { base, impuestos, total: Math.round((base+impuestos)*100)/100, sinPrecio };
+}
+
+function bloqueTotales(lineas, clave){
+  const attr = clave ? ` data-totales="${esc(clave)}"` : '';
+  const t = calcularTotales(lineas);
+  if (!t.base && !t.sinPrecio) return clave ? `<div${attr}></div>` : '';
+  const aviso = t.sinPrecio
+    ? `<div class="tot-aviso">${t.sinPrecio} producto${t.sinPrecio>1?'s':''} sin precio — el total es parcial</div>` : '';
+  if (!t.base) return `<div class="totales"${attr}>${aviso}</div>`;
+  return `<div class="totales"${attr}>
+    <div class="tot-fila"><span>Base</span><span>${eur(t.base)}</span></div>
+    <div class="tot-fila"><span>IGIC</span><span>${eur(t.impuestos)}</span></div>
+    <div class="tot-fila tot-final"><span>Total factura</span><span>${eur(t.total)}</span></div>
+    ${aviso}</div>`;
+}
+
+// Repinta solo los totales, sin recrear la nota a medio escribir
+function actualizarTotalesArmar(){
+  document.querySelectorAll('[data-totales]').forEach(div => {
+    const clave = div.getAttribute('data-totales');
+    const p = clave.split('||'), prov = p[0], local = p.length > 1 ? p[1] : null;
+    const items = (APP.borradores||[]).filter(b => b.Proveedor === prov
+      && (local === null || localDe(b) === local));
+    const tmp = document.createElement('div');
+    tmp.innerHTML = bloqueTotales(items, clave);
+    const nuevo = tmp.firstElementChild;
+    if (nuevo) div.replaceWith(nuevo);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// HOY
+// ════════════════════════════════════════════════════════════
+function renderHoy(){
+  const el = document.getElementById('hoy-lista');
+  const hoy = new Date(), man = new Date(hoy); man.setDate(hoy.getDate()+1);
+  const dHoy = DIAS_SEM[hoy.getDay()], dMan = DIAS_SEM[man.getDay()];
+  const isoHoy = fechaISO(hoy), isoMan = fechaISO(man);
+
+  const provs = APP.proveedores||[];
+  const listosDe = n => (APP.listos||[]).filter(b => b.Proveedor === n);
+  const borrsDe  = n => (APP.borradores||[]).filter(b => b.Proveedor === n);
+
+  const provHoy = provs.filter(p => proveedorTocaDia(p, dHoy));
+  const provMan = provs.filter(p => proveedorTocaDia(p, dMan));
+  const tocaHoy = n => provHoy.some(p => p.Nombre === n);
+
+  // Lo preparado va primero: es lo que puedes enviar ya
+  const conListos = [];
+  (APP.listos||[]).forEach(b => { if (conListos.indexOf(b.Proveedor) === -1) conListos.push(b.Proveedor); });
+
+  let html = '';
+  if (conListos.length){
+    html += seccionTitulo('Listos para pedir','preparados, se pueden enviar ya',conListos.length,'');
+    html += conListos.map(n => {
+      const p = provs.find(x => x.Nombre === n) || { Nombre:n };
+      return tarjetaProveedor(p, listosDe(n), borrsDe(n), isoHoy, true, tocaHoy(n)?'':'No es su día de pedido');
+    }).join('');
+  }
+  // Lo ya decidido va aparte: mezclado entre lo pendiente pasa desapercibido
+  const hoySin  = provHoy.filter(p => conListos.indexOf(p.Nombre) === -1);
+  const hoyPend = hoySin.filter(p => !estadoDia(p.Nombre, isoHoy));
+  hoyPend.sort((a, b) => {
+    const ma = minutosHastaLimite(a.Hora_Limite), mb = minutosHastaLimite(b.Hora_Limite);
+    if (ma === null && mb === null) return 0;
+    if (ma === null) return 1;      // sin hora, al final
+    if (mb === null) return -1;
+    return ma - mb;
+  });
+  const hoyRes  = hoySin.filter(p =>  estadoDia(p.Nombre, isoHoy));
+  if (hoyPend.length){
+    html += seccionTitulo('Toca pedir hoy', dHoy, hoyPend.length, 'hoy-sec-pend');
+    html += hoyPend.map(p => tarjetaProveedor(p, [], borrsDe(p.Nombre), isoHoy, true)).join('');
+  }
+  if (hoyRes.length) html += bloqueResueltos(hoyRes, isoHoy, 'hoy');
+
+  const manSin  = provMan.filter(p => conListos.indexOf(p.Nombre) === -1);
+  const manPend = manSin.filter(p => !estadoDia(p.Nombre, isoMan));
+  const manRes  = manSin.filter(p =>  estadoDia(p.Nombre, isoMan));
+  if (manPend.length){
+    html += seccionTitulo('Mañana', dMan, manPend.length, 'hoy-sec-remoto');
+    html += manPend.map(p => tarjetaProveedor(p, [], borrsDe(p.Nombre), isoMan, false)).join('');
+  }
+  if (manRes.length) html += bloqueResueltos(manRes, isoMan, 'man');
+  if (!html){
+    html = '<div class="empty"><div class="ico">☀️</div><p>Hoy no toca pedir a nadie.<br>'
+         + '<small>Los proveedores aparecen según sus días de pedido.</small></p></div>';
+  }
+  el.innerHTML = html;
+}
+
+// Un local, un pedido. Si está listo se manda y se confirma; si todavía
+// son borradores se arma aquí mismo, sin pasar por la pestaña Armar.
+function bloquePedido(pref, prov, local, listos, borrs, varios){
+  const pj = js(prov), lj = js(local);
+  const n = listos.length || borrs.length;
+  const cab = varios
+    ? `<div class="ped-local-head"><span class="ped-local-nom">${esc(local)}</span>
+        <span class="ped-local-n">${n} ítem${n>1?'s':''}${listos.length?' · listo':''}</span></div>`
+    : '';
+
+  if (listos.length){
+    const cuerpo = listos.map(b => `
+      <div class="hoy-item">
+        <div class="nombre">${esc(b.Producto)}</div>
+        <div class="detalle">×${b.Cantidad} ${esc(getUnidad(b.Producto,b.Proveedor).toLowerCase())}</div>
+      </div>`).join('')
+      + (notaDe(listos)?`<div class="hoy-nota-order-ro">📝 ${esc(notaDe(listos))}</div>`:'')
+      + bloqueTotales(listos)
+      + `<button class="generar-btn" onclick="abrirModalGenerar('${pj}','${lj}')">Generar texto del pedido</button>
+         <div class="hoy-acciones">
+           <button class="confirmar-btn" onclick="confirmarHoy('${pj}','${lj}',this)">Confirmar — pedido realizado</button>
+           <button class="btn btn-outline btn-sm" onclick="devolverABorrador('${pj}','${lj}',this)" title="Si te faltó algo">Volver a borrador</button>
+         </div>`;
+    return `<div class="ped-bloque listo${varios?'':' ped-solo'}">${cab}<div class="ped-cuerpo">${cuerpo}</div></div>`;
+  }
+
+  const k = clavePL(pref, prov, local);
+  const cuerpo = borrs.map(b => filaArmar(b,'')).join('')
+    + `<div class="ped-nota">
+        <label>Nota para el pedido</label>
+        <textarea id="nota-${k}" data-nota="${esc(prov+'||'+local)}"
+          onblur="guardarNotaPL('${pj}','${lj}','${k}')"
+          placeholder="Ej: preguntar por ofertas, entregar por la tarde…">${esc(notaDe(borrs))}</textarea>
+        <div class="nota-estado" id="nota-estado-${k}"></div>
+      </div>`
+    + bloqueTotales(borrs, prov+'||'+local)
+    + `<button class="btn btn-success btn-block" onclick="marcarListoPL('${pj}','${lj}','${k}',this)">Listo para pedir</button>`;
+  return `<div class="ped-bloque${varios?'':' ped-solo'}">${cab}<div class="ped-cuerpo">${cuerpo}</div></div>`;
+}
+
+// Franja verde con lo ya resuelto del día. Es lo que ve la otra persona al
+// abrir la app, para que no vuelva a pedir algo que ya está decidido.
+function bloqueResueltos(provs, iso, cuando){
+  const filas = provs.map(p => {
+    const e = estadoDia(p.Nombre, iso) || { tipo:"skip", hora:"" };
+    const ped = e.tipo === "pedido";
+    return `<div class="res-fila">
+      <span class="res-nom">${esc(p.Nombre)}</span>
+      <span class="res-tag ${ped?"res-ped":"res-no"}">${ped?"Ya pedido":"No se pide nada"}</span>
+      ${e.hora?`<span class="res-hora">marcado a las ${esc(e.hora)}</span>`:""}
+      <button class="res-undo" onclick="deshacerNoPedir('${js(p.Nombre)}','${iso}',this)">Deshacer</button>
+    </div>`;
+  }).join("");
+  const n = provs.length;
+  return `<div class="res-bloque">
+    <div class="res-tit">
+      <span>Ya resuelto ${cuando==="hoy"?"hoy":"para mañana"}
+        <small>no hay que hacer nada con ${n>1?"estos proveedores":"este proveedor"}</small></span>
+      <span class="res-count">${n}</span>
+    </div>${filas}</div>`;
+}
+
+function seccionTitulo(tit, sub, n, clase){
+  return `<div class="hoy-seccion-titulo ${clase}">
+    <span>${esc(tit)}<small class="hoy-sec-sub">${esc(sub)}</small></span>
+    <span class="hoy-sec-count">${n} proveedor${n>1?'es':''}</span></div>`;
+}
+
+function tarjetaProveedor(p, listos, borradores, iso, esHoy, avisoDia){
+  const prov = p.Nombre, pj = js(prov);
+  const local = (p.Metodo_Pedido||'').toLowerCase().includes('local');
+  const badge = p.Metodo_Pedido
+    ? `<span class="metodo-badge ${local?'metodo-local':'metodo-remoto'}">${local?'Viene al local':esc(p.Metodo_Pedido)}</span>` : '';
+  const entrega = p.Dias_Entrega ? 'Entrega: '+esc(p.Dias_Entrega) : '';
+  const lim = estadoLimite(p, esHoy);
+  // Si ya pasó la hora o está al caer, no basta una etiqueta pequeña
+  const limBarra = (lim && lim.clase !== 'ok' && !estadoDia(prov, iso))
+    ? `<div class="lim-barra ${lim.clase}"><span>${lim.clase==='pasada'?'⛔':'⚠️'}</span><span>${esc(lim.txt)}</span></div>`
+    : '';
+  const limChip = lim ? `<span class="lim-chip ${lim.clase}">🕒 ${esc(lim.hora)}</span>` : '';
+  const nota = p.Notas_Proveedor
+    ? `<div class="hoy-nota-prov"><span class="nota-ico">📌</span><span>${esc(p.Notas_Proveedor)}</span></div>` : '';
+  const estado = estadoDia(prov, iso);
+
+  let cuerpo = '';
+  if (estado){
+    const esPedido = estado.tipo === 'pedido';
+    const det = estado.hora ? 'a las '+estado.hora : '';
+    cuerpo = `<div class="hoy-vacio hoy-saltado"><div>
+        <div class="hoy-vacio-txt">${esPedido?'Ya pedido':'No se pide nada'+(esHoy?' hoy':' mañana')}</div>
+        ${det?`<div class="hoy-quien">${det}</div>`:''}
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="deshacerNoPedir('${pj}','${iso}',this)">Deshacer</button></div>`;
+  } else if (listos.length || borradores.length){
+    // Un pedido por local: cada uno se arma, se manda y se confirma solo
+    const locs = [];
+    listos.concat(borradores).forEach(b => {
+      const l = localDe(b); if (locs.indexOf(l) === -1) locs.push(l);
+    });
+    locs.sort();
+    const varios = locs.length > 1;
+    cuerpo = locs.map(loc => bloquePedido('h', prov, loc,
+      lineasDe(listos, prov, loc), lineasDe(borradores, prov, loc), varios)).join('');
+  } else {
+    cuerpo = `<div class="hoy-vacio">
+        <div class="hoy-vacio-txt">Nada preparado</div>
+        <div class="hoy-vacio-btns">
+          <button class="btn btn-primary btn-sm" onclick="irA('anotar')">Anotar</button>
+          <button class="btn btn-outline btn-sm" onclick="repetirUltimo('${pj}',this)">Repetir último</button>
+          <button class="btn btn-outline btn-sm" onclick="marcarYaPedido('${pj}','${iso}',this)">Ya pedido</button>
+          <button class="btn btn-outline btn-sm" onclick="marcarNoPedir('${pj}','${iso}',this)">No pedir nada</button>
+        </div></div>`;
+  }
+
+  return `<div class="hoy-grupo${estado?' saltado':''}">
+    <div class="hoy-header">
+      <div class="hoy-header-left">
+        <h3>${esc(prov)}</h3>
+        <div class="meta">${[entrega, esc(p.Info_Contacto||'')].filter(Boolean).join(' · ')}</div>
+      </div>
+      <div class="hoy-header-right">
+        ${avisoDia?`<span class="aviso-dia">${esc(avisoDia)}</span>`:''}${badge}${limChip}
+      </div>
+    </div>
+    ${estado?'':limBarra}${estado?'':nota}
+    <div class="hoy-body">${cuerpo}</div>
+  </div>`;
+}
+
+function marcarNoPedir(prov, iso, btn){ _marcarEstado(prov, iso, 'skip', btn, prov+': no se pide nada'); }
+function marcarYaPedido(prov, iso, btn){ _marcarEstado(prov, iso, 'pedido', btn, prov+': marcado como ya pedido'); }
+
+function _marcarEstado(prov, iso, tipo, btn, msg){
+  btn.disabled = true;
+  google.script.run
+    .withSuccessHandler(r => {
+      APP.skips = APP.skips || {};
+      APP.skips[prov+'||'+iso] = (r && r.estado) ? r.estado : { tipo:tipo, hora:'' };
+      renderHoy(); renderAlertaBanner(); showToast(msg);
+    })
+    .withFailureHandler(e => { btn.disabled = false; showToast('Error: '+e.message); })
+    .marcarEstadoDia(prov, iso, tipo);
+}
+
+function deshacerNoPedir(prov, iso, btn){
+  btn.disabled = true;
+  google.script.run
+    .withSuccessHandler(() => {
+      if (APP.skips) delete APP.skips[prov+'||'+iso];
+      renderHoy(); renderAlertaBanner(); showToast('Deshecho');
+    })
+    .withFailureHandler(e => { btn.disabled = false; showToast('Error: '+e.message); })
+    .quitarEstadoDia(prov, iso);
+}
+
+function confirmarHoy(prov, local, btn){
+  const ids = lineasDe(APP.listos, prov, local).map(b => b.ID_Pedido);
+  if (!ids.length) return;
+
+  // Si se añadió algo después de copiar el texto, el proveedor no lo tiene
+  const g = _genEnviado[prov+'||'+local];
+  if (g){
+    const nuevos = ids.filter(x => g.indexOf(x) === -1);
+    if (nuevos.length && !confirm('Después de generar el texto se ha añadido '
+        + nuevos.length + ' producto' + (nuevos.length>1?'s':'')
+        + '.\n\nEl proveedor no lo tiene. ¿Confirmas el pedido igual?')) return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Confirmando…';
+  google.script.run
+    .withSuccessHandler(r => {
+      delete _genEnviado[prov+'||'+local];
+      const num = (r && r.numPedido) || '';
+      // Confirmar es la señal más clara de que ya se pidió. Si al proveedor
+      // no le queda nada suelto, se marca como resuelto del día: así sale en
+      // "Ya resuelto hoy" y Telegram deja de recordarlo.
+      const quedan = (APP.borradores||[]).concat(APP.listos||[])
+        .filter(b => b.Proveedor === prov && ids.indexOf(b.ID_Pedido) === -1);
+      if (quedan.length){
+        showToast(local+' — pedido '+num+' confirmado. Al proveedor le quedan '
+          + quedan.length + ' línea' + (quedan.length>1?'s':''), 4500);
+        _histPend = true; recargarPedidos();
+        return;
+      }
+      const iso = fechaISO(new Date());
+      google.script.run
+        .withSuccessHandler(e2 => {
+          APP.skips = APP.skips || {};
+          APP.skips[prov+'||'+iso] = (e2 && e2.estado) ? e2.estado : { tipo:'pedido', hora:'' };
+          showToast(local+' — pedido '+num+' confirmado', 3500);
+          _histPend = true; recargarPedidos();
+        })
+        .withFailureHandler(() => { showToast(local+' — pedido '+num+' confirmado', 3500); _histPend = true; recargarPedidos(); })
+        .marcarEstadoDia(prov, iso, 'pedido');
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent='Confirmar — pedido realizado'; showToast('Error: '+e.message); })
+    .marcarPedidoRealizado(ids);
+}
+
+function devolverABorrador(prov, local, btn){
+  const ids = lineasDe(APP.listos, prov, local).map(b => b.ID_Pedido);
+  if (!ids.length) return;
+  btn.disabled = true; btn.textContent = 'Devolviendo…';
+  google.script.run
+    .withSuccessHandler(r => {
+      if (!r || !r.ok){ btn.disabled = false; btn.textContent='Volver a borrador'; showToast('Error'); return; }
+      showToast(local+': vuelto a borrador', 3000);
+      recargarPedidos();
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent='Volver a borrador'; showToast('Error: '+e.message); })
+    .volverABorrador(ids);
+}
+
+function marcarListoPL(prov, local, k, btn){
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  // Primero se confirma que la nota está en la hoja, y después se cambia
+  // de estado: así no se pierde por una carrera entre las dos llamadas
+  guardarNotaPL(prov, local, k).then(() => {
+    const ids = lineasDe(APP.borradores, prov, local).map(b => b.ID_Pedido);
+    if (!ids.length){ btn.disabled = false; btn.textContent = 'Listo para pedir'; return; }
+    google.script.run
+      .withSuccessHandler(() => { showToast(local+': listo para pedir', 3000); recargarPedidos(); })
+      .withFailureHandler(e => { btn.disabled = false; btn.textContent='Listo para pedir'; showToast('Error: '+e.message); })
+      .marcarListoParaPedir(ids);
+  });
+}
+
+
+// ════════════════════════════════════════════════════════════
+// ANOTAR
+// ════════════════════════════════════════════════════════════
+function filtrarProds(){
+  const prov = document.getElementById('a-prov').value;
+  limpiarProducto();
+  const inp = document.getElementById('a-prod-buscar');
+  inp.disabled = !prov;
+  const n = (APP.productos||[]).filter(p => p.ID_Proveedor === prov).length;
+  inp.placeholder = prov ? `Escribe para buscar entre ${n} productos` : 'Elige el proveedor primero';
+  resetUPCSel();
+
+  const info = document.getElementById('a-prov-info');
+  const p = (APP.proveedores||[]).find(x => x.Nombre === prov);
+  if (p){
+    const local = (p.Metodo_Pedido||'').toLowerCase().includes('local');
+    const chips = [`<span class="metodo-badge ${local?'metodo-local':'metodo-remoto'}">${local?'Viene al local':esc(p.Metodo_Pedido||'—')}</span>`];
+    if (p.Dias_Pedido)   chips.push(`<span class="chip gn">Pedido: ${esc(p.Dias_Pedido)}</span>`);
+    if (p.Dias_Entrega)  chips.push(`<span class="chip am">Entrega: ${esc(p.Dias_Entrega)}</span>`);
+    if (p.Info_Contacto) chips.push(`<span class="chip sl">${esc(p.Info_Contacto)}</span>`);
+    let h = `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${chips.join('')}</div>`;
+    if (p.Notas_Proveedor) h += `<div class="prov-nota" style="margin-top:8px">${esc(p.Notas_Proveedor)}</div>`;
+    info.innerHTML = h; info.style.display = 'block';
+  } else info.style.display = 'none';
+}
+
+// Buscador con sugerencias: con decenas de productos, escribir dos letras
+// es mucho más rápido que buscar con el dedo en una lista larga
+function buscarProducto(){
+  const inp = document.getElementById('a-prod-buscar');
+  const cont = document.getElementById('a-prod-lista');
+  const q = sinAcentos(inp.value.trim());
+  document.getElementById('a-prod-x').style.display = inp.value ? '' : 'none';
+  const prov = document.getElementById('a-prov').value;
+
+  let lista = (APP.productos||[]).filter(p => p.ID_Proveedor === prov);
+  if (q){
+    lista = lista.filter(p => sinAcentos(p.Nombre_Producto).includes(q)
+                           || sinAcentos(p.Codigo_Proveedor).includes(q));
+    lista.sort((a,b) => (sinAcentos(a.Nombre_Producto).startsWith(q)?0:1)
+                      - (sinAcentos(b.Nombre_Producto).startsWith(q)?0:1));
+  }
+  _prodMarcado = -1;
+
+  if (!lista.length){
+    cont.innerHTML = '<div class="combo-vacio">Sin resultados'
+      + '<button type="button" onclick="abrirModalProd()">Crear producto</button></div>';
+    cont.classList.add('show'); return;
+  }
+  cont.innerHTML = lista.slice(0,40).map((p,i) => {
+    const upc = Number(p.Unidades_Por_Caja)||1;
+    const cod = p.Codigo_Proveedor ? `<span class="combo-cod">${esc(p.Codigo_Proveedor)}</span>` : '';
+    const caja = upc>1 ? `<span class="combo-meta">${upc} u/caja</span>` : '';
+    const pre = Number(p.Precio_Coste) ? `<span class="combo-meta">${eur(p.Precio_Coste)}/u</span>` : '';
+    return `<div class="combo-item" data-i="${i}" onmousedown="elegirProducto('${js(p.Nombre_Producto)}')">
+      <span class="combo-nom">${cod}${esc(p.Nombre_Producto)}</span>
+      <span class="combo-extra">${caja}${pre}</span></div>`;
+  }).join('');
+  cont.classList.add('show');
+}
+
+function elegirProducto(nombre){
+  document.getElementById('a-prod').value = nombre;
+  document.getElementById('a-prod-buscar').value = nombre;
+  document.getElementById('a-prod-x').style.display = '';
+  cerrarListaProducto();
+  onProdChange();
+}
+function limpiarProducto(){
+  document.getElementById('a-prod').value = '';
+  document.getElementById('a-prod-buscar').value = '';
+  document.getElementById('a-prod-x').style.display = 'none';
+  cerrarListaProducto();
+  resetUPCSel();
+}
+function cerrarListaProducto(){
+  const c = document.getElementById('a-prod-lista');
+  if (c) c.classList.remove('show');
+  _prodMarcado = -1;
+}
+function teclaProducto(e){
+  const cont = document.getElementById('a-prod-lista');
+  const items = cont.querySelectorAll('.combo-item');
+  if (e.key === 'Escape'){ cerrarListaProducto(); return; }
+  if (!items.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    e.preventDefault();
+    _prodMarcado += (e.key === 'ArrowDown' ? 1 : -1);
+    if (_prodMarcado < 0) _prodMarcado = items.length-1;
+    if (_prodMarcado >= items.length) _prodMarcado = 0;
+    items.forEach((it,i) => it.classList.toggle('on', i === _prodMarcado));
+    items[_prodMarcado].scrollIntoView({block:'nearest'});
+  } else if (e.key === 'Enter'){
+    e.preventDefault();
+    items[_prodMarcado >= 0 ? _prodMarcado : 0].dispatchEvent(new MouseEvent('mousedown'));
+  }
+}
+document.addEventListener('click', e => { if (!e.target.closest('.combo')) cerrarListaProducto(); });
+
+function resetUPCSel(){
+  const s = document.getElementById('a-tipo');
+  if (s) s.innerHTML = '<option value="unidades">Unidades</option>';
+  const h = document.getElementById('upc-hint');
+  if (h) h.textContent = '';
+}
+function onProdChange(){
+  const prov = document.getElementById('a-prov').value;
+  const prod = document.getElementById('a-prod').value;
+  const upc = prod ? getUPC(prod, prov) : 1;
+  const s = document.getElementById('a-tipo');
+  s.innerHTML = '<option value="unidades">Unidades</option>'
+    + (upc > 1 ? `<option value="cajas">Cajas (×${upc})</option>` : '');
+  actualizarUPCHint();
+}
+function actualizarUPCHint(){
+  const prov = document.getElementById('a-prov').value;
+  const prod = document.getElementById('a-prod').value;
+  const tipo = document.getElementById('a-tipo').value;
+  const cant = parseInt(document.getElementById('a-cant').value)||1;
+  const h = document.getElementById('upc-hint');
+  if (!prod || tipo !== 'cajas'){ h.textContent = ''; return; }
+  const upc = getUPC(prod, prov);
+  h.textContent = `${cant} caja${cant>1?'s':''} = ${cant*upc} unidades`;
+}
+
+function anyadirALista(){
+  const prov = document.getElementById('a-prov').value;
+  const prod = document.getElementById('a-prod').value;
+  const tipo = document.getElementById('a-tipo').value;
+  const cantInput = parseInt(document.getElementById('a-cant').value)||1;
+  const loc = document.getElementById('a-local').value;
+  if (!prov || !prod){ showToast('Selecciona proveedor y producto'); return; }
+  if (!loc){ showToast('Selecciona el local destino'); return; }
+
+  const upc = getUPC(prod, prov);
+  const cantReal = tipo === 'cajas' ? cantInput*upc : cantInput;
+
+  // Mismo producto, proveedor y local: se suma en vez de duplicar,
+  // así al proveedor no le llega dos veces la misma línea
+  const i = _anotarLista.findIndex(it => it.Producto === prod && it.Proveedor === prov && it.Local_Destino === loc);
+  if (i !== -1){
+    const previo = _anotarLista[i].Cantidad;
+    _anotarLista[i].Cantidad = previo + cantReal;
+    _anotarLista[i]._etiqueta = unidadLabel(getUnidad(prod,prov), _anotarLista[i].Cantidad);
+    guardarListaAnotar(); limpiarProducto();
+    document.getElementById('a-cant').value = 1;
+    renderAnotarLista();
+    showToast(`${prod}: ${previo} + ${cantReal} = ${_anotarLista[i].Cantidad}`, 3500);
+    return;
+  }
+
+  const etiqueta = tipo === 'cajas'
+    ? `${cantInput} caja${cantInput>1?'s':''} (${cantReal} un.)`
+    : unidadLabel(getUnidad(prod,prov), cantReal);
+  _anotarLista.push({ Proveedor:prov, Producto:prod, Cantidad:cantReal, Local_Destino:loc, _etiqueta:etiqueta });
+  guardarListaAnotar();
+  limpiarProducto();
+  document.getElementById('a-cant').value = 1;
+  renderAnotarLista();
+  showToast(prod+' añadido');
+}
+
+// La lista pendiente se guarda en el dispositivo: si se bloquea el móvil
+// o se recarga la página, no se pierde lo anotado
+function guardarListaAnotar(){
+  try { localStorage.setItem(CLAVE_LISTA, JSON.stringify(_anotarLista)); } catch(e){}
+}
+function cargarListaAnotar(){
+  try {
+    const raw = localStorage.getItem(CLAVE_LISTA);
+    if (raw){ const a = JSON.parse(raw); if (Array.isArray(a)) _anotarLista = a; }
+  } catch(e){ _anotarLista = []; }
+  renderAnotarLista();
+  if (_anotarLista.length)
+    showToast(`Recuperada tu lista de ${_anotarLista.length} producto${_anotarLista.length>1?'s':''}`, 3500);
+}
+function quitarDeListaAnotar(i){ _anotarLista.splice(i,1); guardarListaAnotar(); renderAnotarLista(); }
+function limpiarListaAnotar(){ _anotarLista = []; guardarListaAnotar(); renderAnotarLista(); }
+
+function renderAnotarLista(){
+  const wrap = document.getElementById('anotar-lista-wrap');
+  if (!wrap) return;
+  if (!_anotarLista.length){ wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  document.getElementById('anotar-lista-tit').textContent =
+    `Lista pendiente (${_anotarLista.length} ítem${_anotarLista.length>1?'s':''})`;
+  document.getElementById('anotar-lista-items').innerHTML = _anotarLista.map((it,i) => `
+    <div class="lista-pend-item">
+      <span class="nom">${esc(it.Producto)}</span>
+      <span class="chip" style="font-size:.7rem">${esc(it._etiqueta||it.Cantidad)}</span>
+      <span class="local-chip">${esc(it.Local_Destino)}</span>
+      <button class="lista-pend-x" onclick="quitarDeListaAnotar(${i})">×</button>
+    </div>`).join('');
+}
+
+function guardarTodos(){
+  if (!_anotarLista.length) return;
+  const btn = document.getElementById('btn-guardar-todos');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  google.script.run
+    .withSuccessHandler(r => {
+      btn.disabled = false; btn.textContent = 'Guardar todos como borradores';
+      if (!r || !r.ok){ showToast('Error al guardar'); return; }
+      const n = _anotarLista.length;
+      _anotarLista = []; guardarListaAnotar();
+      showToast(`${n} borrador${n>1?'es':''} guardado${n>1?'s':''}`);
+      recargarPedidos();
+    })
+    .withFailureHandler(e => {
+      btn.disabled = false; btn.textContent = 'Guardar todos como borradores';
+      showToast('Error: '+e.message);
+    })
+    .savePedidos(_anotarLista.map(it => ({
+      Proveedor:it.Proveedor, Producto:it.Producto,
+      Cantidad:it.Cantidad, Local_Destino:it.Local_Destino })));
+}
+
+// ════════════════════════════════════════════════════════════
+// ARMAR
+// ════════════════════════════════════════════════════════════
+function cambiarVistaArmar(v){
+  _vistaArmar = v;
+  document.getElementById('vista-prov').classList.toggle('on', v === 'proveedor');
+  document.getElementById('vista-local').classList.toggle('on', v === 'local');
+  renderArmar();
+}
+function agruparPor(items, campo){
+  const g = {};
+  (items||[]).forEach(b => { const k = b[campo] || '(sin asignar)'; (g[k] = g[k]||[]).push(b); });
+  return g;
+}
+function filaArmar(b, etiqueta){
+  return `<div class="hoy-item">
+    <div class="nombre">${esc(b.Producto)}
+      <span class="chip ud" style="font-size:.62rem">${esc(getUnidad(b.Producto,b.Proveedor))}</span>
+      ${etiqueta?`<span class="local-chip" style="margin-left:5px">${esc(etiqueta)}</span>`:''}
+    </div>
+    <div class="qty-ctrl">
+      <button class="qty-btn" onclick="adjQty('${js(b.ID_Pedido)}',-1)">−</button>
+      <input type="number" data-qty="${esc(b.ID_Pedido)}" value="${b.Cantidad}" min="1"
+        onchange="saveQty('${js(b.ID_Pedido)}',this.value)">
+      <button class="qty-btn" onclick="adjQty('${js(b.ID_Pedido)}',1)">+</button>
+    </div>
+    <button class="bor-del-btn" onclick="elimBorrador('${js(b.ID_Pedido)}',this)" title="Quitar del pedido">Quitar</button>
+  </div>`;
+}
+
+// Clave de pantalla+proveedor+local. El prefijo evita que Hoy y Armar,
+// que están los dos en el DOM, se pisen los ids de la nota.
+function clavePL(pref, prov, local){
+  const t = prov+'||'+local;
+  let n = 0; for (let i=0;i<t.length;i++) n = (n*31 + t.charCodeAt(i)) >>> 0;
+  return pref+'-'+n.toString(36);
+}
+function localDe(b){ return b.Local_Destino || '(sin asignar)'; }
+function lineasDe(lista, prov, local){
+  return (lista||[]).filter(b => b.Proveedor === prov && localDe(b) === local);
+}
+
+function renderArmar(){
+  const el = document.getElementById('lista-armar');
+  if (!(APP.borradores||[]).length){
+    el.innerHTML = '<div class="empty"><div class="ico">📦</div><p>No hay borradores que armar.</p></div>';
+    return;
+  }
+  el.innerHTML = _vistaArmar === 'local' ? armarPorLocal() : armarPorProveedor();
+}
+
+function armarPorProveedor(){
+  const grupos = agruparPor(APP.borradores, 'Proveedor');
+  return Object.keys(grupos).map(prov => {
+    const items = grupos[prov];
+    const porLocal = agruparPor(items, 'Local_Destino');
+    const locales = Object.keys(porLocal).sort();
+    const uds = items.reduce((s,b) => s + (Number(b.Cantidad)||0), 0);
+    const varios = locales.length > 1;
+
+    return `<div class="grupo-proveedor">
+      <div class="grupo-header"><h3>${esc(prov)}</h3>
+        <span class="chip">${items.length} ítem${items.length>1?'s':''} · ${uds} uds.${
+          varios?' · '+locales.length+' pedidos':''}</span></div>
+      <div class="grupo-body">${
+        locales.map(loc => bloqueArmarLocal(prov, loc, porLocal[loc], varios)).join('')
+      }</div></div>`;
+  }).join('');
+}
+
+// La pantalla de Anotar pinta exactamente los mismos bloques que Hoy
+function bloqueArmarLocal(prov, local, items, varios){
+  return bloquePedido('a', prov, local, [], items, varios);
+}
+
+// Vista de reparto: un pedido se manda a un proveedor, no a un local,
+// por eso aquí no hay botón de enviar
+function armarPorLocal(){
+  const grupos = agruparPor(APP.borradores, 'Local_Destino');
+  const aviso = `<div class="vista-aviso">Vista de reparto. Para enviar un pedido, cambia a <b>Por proveedor</b>.</div>`;
+  return aviso + Object.keys(grupos).map(loc => {
+    const items = grupos[loc];
+    const porProv = agruparPor(items, 'Proveedor');
+    const uds = items.reduce((s,b) => s + (Number(b.Cantidad)||0), 0);
+    return `<div class="grupo-proveedor grupo-local">
+      <div class="grupo-header"><h3>${esc(loc)}</h3>
+        <span class="chip">${items.length} ítem${items.length>1?'s':''} · ${uds} uds.</span></div>
+      <div class="grupo-body">
+        ${Object.keys(porProv).map(prov => `<div class="sub-local">
+          <div class="sub-local-head"><span>${esc(prov)}</span>
+            <span class="sub-local-n">${porProv[prov].length} ítem${porProv[prov].length>1?'s':''}</span></div>
+          ${porProv[prov].map(b => filaArmar(b,'')).join('')}</div>`).join('')}
+      </div></div>`;
+  }).join('');
+}
+
+function adjQty(id, d){
+  const b = (APP.borradores||[]).find(x => x.ID_Pedido === id);
+  if (!b) return;
+  saveQty(id, Math.max(1,(parseInt(b.Cantidad)||1)+d));
+}
+// La misma línea puede estar pintada en Hoy y en Armar a la vez
+function sincQty(id, v, clase){
+  document.querySelectorAll('[data-qty="'+id+'"]').forEach(i => {
+    i.value = v;
+    i.classList.remove('guardando','error');
+    if (clase) i.classList.add(clase);
+  });
+}
+
+// Si la escritura no llega a la hoja se deshace en pantalla:
+// vale más ver el valor real que uno que solo existe aquí
+function saveQty(id, val){
+  const nv = Math.max(1, parseInt(val)||1);
+  const b = (APP.borradores||[]).find(x => x.ID_Pedido === id);
+  if (!b) return;
+  const anterior = b.Cantidad;
+  if (anterior === nv){ sincQty(id, nv); return; }
+  b.Cantidad = nv;
+  sincQty(id, nv, 'guardando');
+
+  const fallo = () => {
+    b.Cantidad = anterior;
+    sincQty(id, anterior, 'error');
+    showToast('No se pudo guardar la cantidad — se ha deshecho', 4000);
+    setTimeout(() => sincQty(id, anterior), 2500);
+    actualizarTotalesArmar();
+  };
+  google.script.run
+    .withSuccessHandler(r => {
+      if (r && r.ok === false){ fallo(); return; }
+      sincQty(id, nv);
+      actualizarTotalesArmar();
+    })
+    .withFailureHandler(fallo)
+    .actualizarCantidad(id, nv);
+}
+
+// La nota se graba al salir del campo, no al pulsar "Listo":
+// así no se pierde si algo falla entre medias
+function guardarNotaPL(prov, local, k){
+  return new Promise(resolve => {
+    const campo = document.getElementById('nota-'+k);
+    if (!campo){ resolve(''); return; }
+    const nota = campo.value.trim();
+    const lineas = lineasDe(APP.borradores, prov, local);
+    if (!lineas.length){ resolve(nota); return; }
+    if (notaDe(lineas) === nota){ resolve(nota); return; }
+
+    const est = document.getElementById('nota-estado-'+k);
+    if (est){ est.textContent = 'Guardando…'; est.className = 'nota-estado'; }
+    let pend = lineas.length, fallo = false;
+    lineas.forEach(b => {
+      google.script.run
+        .withSuccessHandler(r => { if (!r||!r.ok) fallo = true; else b.Notas = nota; if (--pend === 0) fin(); })
+        .withFailureHandler(() => { fallo = true; if (--pend === 0) fin(); })
+        .guardarNota(b.ID_Pedido, nota);
+    });
+    function fin(){
+      if (est){
+        est.textContent = fallo ? 'No se pudo guardar la nota' : 'Nota guardada';
+        est.className = 'nota-estado '+(fallo?'mal':'bien');
+        if (!fallo) setTimeout(() => { if (est) est.textContent = ''; }, 2500);
+      }
+      if (fallo) showToast('No se pudo guardar la nota', 4000);
+      // Hoy y Armar pintan la misma nota: se igualan las dos copias
+      else document.querySelectorAll('[data-nota="'+(prov+'||'+local).replace(/"/g,'')+'"]')
+             .forEach(t => { if (t !== campo) t.value = nota; });
+      resolve(nota);
+    }
+  });
+}
+
+
+
+function renderBorradores(){
+  const el = document.getElementById('lista-borradores');
+  if (!el) return;
+  if (!(APP.borradores||[]).length){
+    el.innerHTML = '<div class="empty"><div class="ico">📝</div><p>Sin borradores.</p></div>'; return;
+  }
+  el.innerHTML = APP.borradores.map(b => {
+    const u = getUnidad(b.Producto, b.Proveedor);
+    return `<div class="hoy-item">
+      <div class="nombre">${esc(b.Producto)}
+        <span class="chip ud" style="font-size:.62rem">${esc(u)}</span></div>
+      <span class="local-chip">${esc(b.Local_Destino)}</span>
+      <span class="chip">×${b.Cantidad}</span>
+      <div style="display:flex;gap:5px">
+        <button class="btn-ghost" onclick='editarBorrador(${JSON.stringify(b).replace(/'/g,"&#39;").replace(/"/g,"&quot;")})'>Editar</button>
+        <button class="bor-del-btn" onclick="elimBorrador('${js(b.ID_Pedido)}',this)">Eliminar</button>
+      </div></div>`;
+  }).join('');
+}
+
+function elimBorrador(id, btn){
+  btn.disabled = true;
+  google.script.run
+    .withSuccessHandler(() => { showToast('Borrador eliminado'); recargarPedidos(); })
+    .withFailureHandler(e => { btn.disabled = false; showToast('Error: '+e.message); })
+    .eliminarBorrador(id);
+}
+
+// ════════════════════════════════════════════════════════════
+// EDITAR BORRADOR
+// ════════════════════════════════════════════════════════════
+function editarBorrador(b){
+  document.getElementById('meb-id').value = b.ID_Pedido;
+  const sp = document.getElementById('meb-prov');
+  sp.innerHTML = (APP.proveedores||[]).map(p =>
+    `<option value="${esc(p.Nombre)}">${esc(p.Nombre)}</option>`).join('');
+  sp.value = b.Proveedor;
+  filtrarProductosMeb(b.Producto);
+  document.getElementById('meb-cant').value = b.Cantidad;
+  document.getElementById('meb-tipo').value = 'unidades';
+  document.getElementById('meb-local').value = b.Local_Destino;
+  document.getElementById('meb-notas').value = b.Notas || '';
+  onMebProdChange();
+  document.getElementById('modal-editar-bor').classList.add('show');
+}
+function onMebProvChange(){ filtrarProductosMeb(''); onMebProdChange(); }
+function filtrarProductosMeb(sel){
+  const prov = document.getElementById('meb-prov').value;
+  const s = document.getElementById('meb-prod');
+  s.innerHTML = (APP.productos||[]).filter(p => p.ID_Proveedor === prov)
+    .map(p => `<option value="${esc(p.Nombre_Producto)}">${esc(p.Nombre_Producto)}</option>`).join('');
+  if (sel) s.value = sel;
+}
+function onMebProdChange(){
+  const prov = document.getElementById('meb-prov').value;
+  const prod = document.getElementById('meb-prod').value;
+  const upc = prod ? getUPC(prod, prov) : 1;
+  const s = document.getElementById('meb-tipo');
+  s.innerHTML = '<option value="unidades">Unidades</option>'
+    + (upc>1 ? `<option value="cajas">Cajas (×${upc})</option>` : '');
+  actualizarMebHint();
+}
+function actualizarMebHint(){
+  const prov = document.getElementById('meb-prov').value;
+  const prod = document.getElementById('meb-prod').value;
+  const tipo = document.getElementById('meb-tipo').value;
+  const cant = parseInt(document.getElementById('meb-cant').value)||1;
+  const h = document.getElementById('meb-hint');
+  if (!prod || tipo !== 'cajas'){ h.textContent = ''; return; }
+  const upc = getUPC(prod, prov);
+  h.textContent = `${cant} caja${cant>1?'s':''} = ${cant*upc} unidades`;
+}
+function guardarEdicionBorrador(){
+  const id = document.getElementById('meb-id').value;
+  const prov = document.getElementById('meb-prov').value;
+  const prod = document.getElementById('meb-prod').value;
+  const tipo = document.getElementById('meb-tipo').value;
+  const cantInput = parseInt(document.getElementById('meb-cant').value)||1;
+  const loc = document.getElementById('meb-local').value;
+  const notas = document.getElementById('meb-notas').value.trim();
+  if (!prov || !prod){ showToast('Selecciona proveedor y producto'); return; }
+  const upc = getUPC(prod, prov);
+  const cantReal = tipo === 'cajas' ? cantInput*upc : cantInput;
+  google.script.run
+    .withSuccessHandler(r => {
+      if (!r || !r.ok){ showToast('Error al guardar'); return; }
+      cerrarModal('modal-editar-bor');
+      recargarPedidos(() => showToast('Borrador actualizado'));
+    })
+    .withFailureHandler(e => showToast('Error: '+e.message))
+    .updatePedido({ ID_Pedido:id, Proveedor:prov, Producto:prod,
+                    Cantidad:cantReal, Local_Destino:loc, Notas:notas });
+}
+
+// ════════════════════════════════════════════════════════════
+// CATÁLOGO — producto con varios proveedores
+// ════════════════════════════════════════════════════════════
+function alternarSinPrecio(btn){
+  _catSinPrecio = !_catSinPrecio;
+  btn.classList.toggle('on', _catSinPrecio);
+  filtrarCatalogo();
+}
+
+function filtrarCatalogo(){
+  const q = sinAcentos(document.getElementById('cat-buscar')?.value || '');
+  const prov = document.getElementById('cat-prov')?.value || '';
+  const cat = APP.catalogo || [];
+
+  const lista = cat.filter(p => {
+    const s = p.suministros || [];
+    if (prov && !s.some(x => x.Proveedor === prov)) return false;
+    if (_catSinPrecio && s.some(x => Number(x.Precio_Coste))) return false;
+    if (!q) return true;
+    return sinAcentos(p.Nombre_Producto).includes(q)
+        || s.some(x => sinAcentos(x.Proveedor).includes(q) || sinAcentos(x.Codigo_Proveedor).includes(q));
+  });
+
+  const cc = document.getElementById('cat-count');
+  if (cc) cc.textContent = (lista.length !== cat.length)
+    ? `${lista.length} de ${cat.length}` : `${lista.length} producto${lista.length!==1?'s':''}`;
+
+  const el = document.getElementById('cat-lista');
+  if (!lista.length){ el.innerHTML = '<div class="empty"><p>Sin resultados.</p></div>'; return; }
+
+  el.innerHTML = lista.map(p => {
+    const sums = p.suministros || [];
+    const conP = sums.filter(x => Number(x.Precio_Coste));
+    const barato = conP.length ? conP[0] : null;
+    const ahorro = conP.length > 1 ? conP[conP.length-1].Precio_Coste - barato.Precio_Coste : 0;
+    const pj = JSON.stringify(p).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+
+    const filas = sums.length ? sums.map(x => {
+      const mejor = barato && x.ID_Suministro === barato.ID_Suministro && conP.length > 1;
+      return `<div class="sum-fila${mejor?' barato':''}">
+        <span class="sum-prov">${mejor?'<span class="sum-mejor">mejor</span>':''}${esc(x.Proveedor)}</span>
+        ${x.Codigo_Proveedor?`<span class="prod-cod">${esc(x.Codigo_Proveedor)}</span>`:''}
+        ${x.Unidades_Por_Caja>1?`<span class="combo-meta">${x.Unidades_Por_Caja} u/caja</span>`:''}
+        <span class="sum-precio">${Number(x.Precio_Coste)
+          ? eur(x.Precio_Coste)+'/u'+(Number(x.Impuesto)?' · IGIC '+Number(x.Impuesto)+'%':'')
+          : '<i>sin precio</i>'}</span>
+      </div>`;
+    }).join('') : '<div class="sum-vacio">Ningún proveedor asignado todavía</div>';
+
+    return `<div class="prod-card">
+      <div class="prod-card-head">
+        <div class="prod-info">
+          <h4>${esc(p.Nombre_Producto)}
+            <span class="chip ud" style="font-size:.62rem;margin-left:2px">${esc(p.Unidad||'Unidad')}</span>
+            ${sums.length>1?`<span class="chip sl" style="font-size:.6rem;margin-left:2px">${sums.length} proveedores</span>`:''}
+          </h4>
+          ${p.Notas_Producto?`<p class="prod-nota-txt">${esc(p.Notas_Producto)}</p>`:''}
+          ${ahorro>0.001?`<p class="prod-ahorro">Ahorras ${eur(ahorro)}/u pidiéndoselo a ${esc(barato.Proveedor)}</p>`:''}
+        </div>
+        <button class="btn-ghost" onclick='abrirModalProd(${pj})'>Editar</button>
+        <button class="btn-ghost" style="color:var(--rd)" onclick="elimProd('${js(p.ID_Producto)}',this)">Eliminar</button>
+      </div>
+      <div class="sum-lista">${filas}</div>
+    </div>`;
+  }).join('');
+}
+
+function elimProd(id, btn){
+  if (!confirm('¿Eliminar este producto y todos sus proveedores?')) return;
+  btn.disabled = true;
+  google.script.run
+    .withSuccessHandler(() => { showToast('Producto eliminado'); recargarDatos(); })
+    .withFailureHandler(e => { btn.disabled = false; showToast('Error: '+e.message); })
+    .deleteProducto(id);
+}
+
+// ── Modal de producto: el nombre una vez, los proveedores los que hagan falta ──
+function abrirModalProd(p){
+  _sumSeq = 0; _sumQuitar = [];
+  document.getElementById('mprod-titulo').textContent = p ? 'Editar producto' : 'Nuevo producto';
+  document.getElementById('mprod-id').value     = p?.ID_Producto || '';
+  document.getElementById('mprod-nombre').value = p?.Nombre_Producto || '';
+  document.getElementById('mprod-unidad').value = p?.Unidad || 'Unidad';
+  document.getElementById('mprod-notas').value  = p?.Notas_Producto || '';
+  document.getElementById('mprod-sums').innerHTML = '';
+
+  const sums = (p && p.suministros) ? p.suministros : [];
+  if (sums.length) sums.forEach(s => addSumEditor(s));
+  else {
+    // Si venimos de Anotar con un proveedor ya elegido, se precarga
+    const prov = document.getElementById('a-prov')?.value || '';
+    addSumEditor(prov ? { Proveedor:prov } : null);
+  }
+  document.getElementById('modal-prod').classList.add('show');
+}
+
+function addSumEditor(s){
+  const i = _sumSeq++;
+  const d = s || {};
+  const opts = (APP.proveedores||[]).map(p =>
+    `<option value="${esc(p.Nombre)}"${d.Proveedor===p.Nombre?' selected':''}>${esc(p.Nombre)}</option>`).join('');
+  const div = document.createElement('div');
+  div.className = 'sumed';
+  div.id = 'sumed-'+i;
+  div.innerHTML = `
+    <div class="sumed-head">
+      <span class="sumed-tit">Proveedor ${i+1}</span>
+      <button class="sumed-x" onclick="quitarSumEditor(${i},'${js(d.ID_Suministro||'')}')">×</button>
+    </div>
+    <input type="hidden" id="sum-id-${i}" value="${esc(d.ID_Suministro||'')}">
+    <div class="mb">
+      <label>Proveedor</label>
+      <select id="sum-prov-${i}"><option value="">— Selecciona —</option>${opts}</select>
+    </div>
+    <div class="fila">
+      <div><label>Código del proveedor</label>
+        <input id="sum-cod-${i}" value="${esc(d.Codigo_Proveedor||'')}" placeholder="Ej: CLP-4471" autocomplete="off"></div>
+      <div><label>Unidades por caja</label>
+        <input type="number" id="sum-upc-${i}" min="1" value="${Number(d.Unidades_Por_Caja)||1}" onchange="hintSum(${i})"></div>
+    </div>
+    <div class="fila">
+      <div><label>Precio de coste</label>
+        <div class="precio-row">
+          <input type="number" id="sum-pre-${i}" step="0.01" min="0" placeholder="0,00"
+            value="${Number(d.Precio_Coste)?Number(d.Precio_Coste):''}" oninput="hintSum(${i})">
+          <select id="sum-tipo-${i}" onchange="hintSum(${i})">
+            <option value="unidad">€ / unidad</option><option value="caja">€ / caja</option>
+          </select>
+        </div>
+      </div>
+      <div><label>IGIC</label>
+        <select id="sum-imp-${i}">
+          <option value="0">0 % — tipo cero</option><option value="3">3 % — reducido</option>
+          <option value="7">7 % — general</option><option value="9.5">9,5 % — incrementado</option>
+          <option value="15">15 % — especial</option><option value="20">20 % — tabaco</option>
+        </select></div>
+    </div>
+    <div class="precio-hint" id="sum-hint-${i}"></div>
+    <div class="mb" style="margin-bottom:0">
+      <label>Unidad del proveedor <span style="font-weight:400;text-transform:none;color:var(--tx3)">(si la llama distinto)</span></label>
+      <input id="sum-uprov-${i}" value="${esc(d.Unidad_Proveedor||'')}" placeholder="Ej: él la vende por cajas de 24" autocomplete="off">
+    </div>`;
+  document.getElementById('mprod-sums').appendChild(div);
+  const imp = document.getElementById('sum-imp-'+i);
+  imp.value = (d.Impuesto !== undefined && d.Impuesto !== '') ? String(Number(d.Impuesto)) : '7';
+  hintSum(i);
+}
+
+function quitarSumEditor(i, idSum){
+  const d = document.getElementById('sumed-'+i);
+  if (d) d.remove();
+  if (idSum) _sumQuitar.push(idSum);   // se borra de la hoja al guardar
+}
+
+// Equivalencia unidad ↔ caja mientras escribes
+function hintSum(i){
+  const el = document.getElementById('sum-hint-'+i);
+  if (!el) return;
+  const v = parseFloat(document.getElementById('sum-pre-'+i).value);
+  const tipo = document.getElementById('sum-tipo-'+i).value;
+  const upc = parseInt(document.getElementById('sum-upc-'+i).value)||1;
+  if (!v || v <= 0){ el.textContent = ''; el.className = 'precio-hint'; return; }
+  if (upc <= 1){ el.textContent = eur(v)+' por unidad'; el.className = 'precio-hint on'; return; }
+  const u = tipo === 'caja' ? v/upc : v;
+  const c = tipo === 'caja' ? v : v*upc;
+  el.textContent = `${eur(u)} la unidad · ${eur(c)} la caja de ${upc}`;
+  el.className = 'precio-hint on';
+}
+
+function guardarProd(btn){
+  const nombre = document.getElementById('mprod-nombre').value.trim();
+  if (!nombre){ showToast('Falta el nombre del producto'); return; }
+
+  const sums = [];
+  const vistos = {};
+  for (let i = 0; i < _sumSeq; i++){
+    const sel = document.getElementById('sum-prov-'+i);
+    if (!sel) continue;                       // se quitó
+    const prov = sel.value.trim();
+    if (!prov) continue;
+    if (vistos[prov]){ showToast('El proveedor "'+prov+'" está repetido'); return; }
+    vistos[prov] = 1;
+    const upc = parseInt(document.getElementById('sum-upc-'+i).value)||1;
+    const pv = parseFloat(document.getElementById('sum-pre-'+i).value)||0;
+    const tipo = document.getElementById('sum-tipo-'+i).value;
+    sums.push({
+      ID_Suministro: document.getElementById('sum-id-'+i).value || '',
+      Proveedor: prov,
+      Codigo_Proveedor: document.getElementById('sum-cod-'+i).value.trim(),
+      // Siempre se guarda por unidad suelta
+      Precio_Coste: (tipo === 'caja' && upc > 1) ? pv/upc : pv,
+      Impuesto: parseFloat(document.getElementById('sum-imp-'+i).value)||0,
+      Unidades_Por_Caja: upc,
+      Unidad_Proveedor: document.getElementById('sum-uprov-'+i).value.trim()
+    });
+  }
+  if (!sums.length){ showToast('Añade al menos un proveedor'); return; }
+
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  google.script.run
+    .withSuccessHandler(r => {
+      btn.disabled = false; btn.textContent = 'Guardar';
+      if (!r || !r.ok){ showToast('Error: '+((r&&r.msg)||'no se pudo guardar')); return; }
+      cerrarModal('modal-prod');
+      recargarDatos(() => {
+        filtrarProds();
+        showToast(r.reutilizado ? 'Ya existía ese producto: se actualizó' : 'Producto guardado');
+      });
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent='Guardar'; showToast('Error: '+e.message); })
+    .saveProducto({
+      ID_Producto: document.getElementById('mprod-id').value || '',
+      Nombre_Producto: nombre,
+      Unidad: document.getElementById('mprod-unidad').value,
+      Notas_Producto: document.getElementById('mprod-notas').value.trim(),
+      suministros: sums,
+      quitarSuministros: _sumQuitar
+    });
+}
+
+// ════════════════════════════════════════════════════════════
+// PROVEEDORES
+// ════════════════════════════════════════════════════════════
+function renderDiasSelectores(){
+  [['mprov-dias-pedido','dp'],['mprov-dias-entrega','de'],['av-dias','av']].forEach(par => {
+    const el = document.getElementById(par[0]);
+    if (!el || el.children.length) return;
+    const cls = par[1] === 'av' ? 'av-dia' : 'dia-btn';
+    el.innerHTML = DIAS_LISTA.map(d =>
+      `<button type="button" class="${cls}" data-dia="${esc(d.toLowerCase())}"
+        onclick="this.classList.toggle('on')">${esc(d.slice(0,2).toUpperCase())}</button>`).join('');
+  });
+}
+function leerDias(id){
+  return Array.from(document.querySelectorAll('#'+id+' [data-dia].on'))
+    .map(b => b.dataset.dia).map(d => d.charAt(0).toUpperCase()+d.slice(1)).join(',');
+}
+function ponerDias(id, str){
+  const sel = String(str||'').split(',').map(s => sinAcentos(s.trim()));
+  document.querySelectorAll('#'+id+' [data-dia]').forEach(b => {
+    b.classList.toggle('on', sel.indexOf(sinAcentos(b.dataset.dia)) !== -1);
+  });
+}
+
+function renderProveedores(){
+  const el = document.getElementById('prov-lista');
+  if (!el) return;
+  if (!(APP.proveedores||[]).length){
+    el.innerHTML = '<div class="empty"><p>Sin proveedores.</p></div>'; return;
+  }
+  const q = sinAcentos(document.getElementById('prov-buscar')?.value || '');
+  const lista = q ? APP.proveedores.filter(p =>
+        sinAcentos(p.Nombre).includes(q) || sinAcentos(p.Info_Contacto).includes(q)
+     || sinAcentos(p.Dias_Pedido).includes(q)) : APP.proveedores;
+  if (!lista.length){ el.innerHTML = '<div class="empty"><p>Sin resultados.</p></div>'; return; }
+
+  el.innerHTML = lista.map(p => {
+    const local = (p.Metodo_Pedido||'').toLowerCase().includes('local');
+    const av = (p.Nombre||'?').charAt(0).toUpperCase();
+    const dias = [p.Dias_Pedido?'Pedido: '+p.Dias_Pedido:'', p.Dias_Entrega?'Entrega: '+p.Dias_Entrega:'']
+                 .filter(Boolean).join(' · ');
+    const nProd = (APP.productos||[]).filter(x => x.ID_Proveedor === p.Nombre).length;
+    const pj = JSON.stringify(p).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+    return `<div class="prov-row">
+      <div class="prov-avatar">${esc(av)}</div>
+      <div class="prov-info">
+        <h4>${esc(p.Nombre)}
+          <span class="metodo-badge ${local?'metodo-local':'metodo-remoto'}" style="margin-left:5px">${local?'Local':esc(p.Metodo_Pedido||'—')}</span></h4>
+        <p>${esc(dias)}${dias?' · ':''}${esc(p.Frecuencia||'')}${nProd?' · '+nProd+' producto'+(nProd>1?'s':''):''}</p>
+        ${p.Info_Contacto?`<p>${esc(p.Info_Contacto)}</p>`:''}
+        ${p.Notas_Proveedor?`<div class="prov-nota">${esc(p.Notas_Proveedor)}</div>`:''}
+      </div>
+      <button class="btn-ghost" onclick='abrirModalProv(${pj})'>Editar</button>
+      <button class="btn-ghost" style="color:var(--rd)" onclick="elimProv('${js(p.ID_Proveedor)}',this)">Eliminar</button>
+    </div>`;
+  }).join('');
+}
+
+function abrirModalProv(p){
+  renderDiasSelectores();
+  document.getElementById('mprov-titulo').textContent = p ? 'Editar proveedor' : 'Nuevo proveedor';
+  document.getElementById('mprov-id').value       = p?.ID_Proveedor || '';
+  document.getElementById('mprov-nombre').value   = p?.Nombre || '';
+  document.getElementById('mprov-contacto').value = p?.Info_Contacto || '';
+  document.getElementById('mprov-metodo').value   = p?.Metodo_Pedido || 'Pedido en el Local';
+  document.getElementById('mprov-frec').value     = p?.Frecuencia || 'Semanal';
+  document.getElementById('mprov-nota').value     = p?.Notas_Proveedor || '';
+  document.getElementById('mprov-limite').value   = p?.Hora_Limite || '';
+  ponerDias('mprov-dias-pedido',  p?.Dias_Pedido  || '');
+  ponerDias('mprov-dias-entrega', p?.Dias_Entrega || '');
+  document.getElementById('modal-prov').classList.add('show');
+}
+
+function guardarProv(){
+  const nombre = document.getElementById('mprov-nombre').value.trim();
+  if (!nombre){ showToast('El nombre es obligatorio'); return; }
+  google.script.run
+    .withSuccessHandler(r => {
+      if (!r || !r.ok){ showToast('Error: '+((r&&r.msg)||'no se pudo guardar')); return; }
+      cerrarModal('modal-prov');
+      recargarDatos(() => showToast(r.yaExistia ? 'Ese proveedor ya existía' : 'Proveedor guardado'));
+    })
+    .withFailureHandler(e => showToast('Error: '+e.message))
+    .saveProveedor({
+      ID_Proveedor: document.getElementById('mprov-id').value || '',
+      Nombre: nombre,
+      Info_Contacto: document.getElementById('mprov-contacto').value.trim(),
+      Metodo_Pedido: document.getElementById('mprov-metodo').value,
+      Hora_Limite: document.getElementById('mprov-limite').value || '',
+      Dias_Pedido:  leerDias('mprov-dias-pedido'),
+      Dias_Entrega: leerDias('mprov-dias-entrega'),
+      Frecuencia: document.getElementById('mprov-frec').value,
+      Notas_Proveedor: document.getElementById('mprov-nota').value.trim()
+    });
+}
+
+function elimProv(id, btn){
+  if (!confirm('¿Eliminar este proveedor?')) return;
+  btn.disabled = true;
+  google.script.run
+    .withSuccessHandler(r => {
+      btn.disabled = false;
+      if (!r || !r.ok){ showToast((r&&r.msg)||'No se pudo eliminar', 4500); return; }
+      showToast('Proveedor eliminado');
+      recargarDatos();
+    })
+    .withFailureHandler(e => { btn.disabled = false; showToast('Error: '+e.message); })
+    .deleteProveedor(id);
+}
+
+// ════════════════════════════════════════════════════════════
+// HISTORIAL
+// ════════════════════════════════════════════════════════════
+function formatearFecha(iso){
+  const m = String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+}
+
+function renderHistorial(){
+  const q = sinAcentos(document.getElementById('hist-buscar')?.value || '').trim();
+  const el = document.getElementById('hist-lista');
+  const lista = (APP.historial||[]).filter(g => {
+    if (!q) return true;
+    if (sinAcentos(g.Proveedor).includes(q)) return true;
+    if (sinAcentos(g.Num_Pedido).includes(q)) return true;
+    if (sinAcentos(g.Fecha).includes(q)) return true;
+    return (g.lineas||[]).some(l => sinAcentos(l.Producto).includes(q)
+                                 || sinAcentos(l.Local_Destino).includes(q));
+  });
+
+  if (!lista.length){
+    el.innerHTML = '<div class="empty"><div class="ico">📋</div><p>'
+      + (q ? 'Sin resultados para "'+esc(q)+'".' : 'Aún no hay pedidos realizados.') + '</p></div>';
+    return;
+  }
+
+  el.innerHTML = lista.map((g, idx) => {
+    const num = g.Num_Pedido ? `<span class="hist-num">${esc(g.Num_Pedido)}</span>` : '';
+    const fecha = (g.Fecha||'').split(' ')[0], hora = (g.Fecha||'').split(' ')[1] || '';
+    // El id del DOM usa el índice: las claves de pedidos antiguos
+    // llevan espacios y barras, inválidos como atributo id
+    const gid = 'g'+idx;
+    const abierto = q ? ' show' : '';
+
+    const lineas = (g.lineas||[]).map(l => {
+      const u = getUnidad(l.Producto, g.Proveedor);
+      const sinP = !Number(l.Precio_Unit);
+      const imp = Number(l.Impuesto_Pct) ? ' · IGIC '+Number(l.Impuesto_Pct)+'%' : '';
+      const lj = JSON.stringify(l).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+      return `<div class="hist-linea">
+        <span class="hist-linea-prod">${esc(l.Producto)}</span>
+        <span class="chip am" style="font-size:.65rem;padding:1px 7px">×${l.Cantidad} ${esc(u.toLowerCase())}</span>
+        ${l.Local_Destino?`<span class="chip" style="font-size:.65rem;padding:1px 7px">${esc(l.Local_Destino)}</span>`:''}
+        <button class="hist-precio${sinP?' falta':''}" onclick='abrirModalPrecio(${lj},${jsonAttr(g.Proveedor)})'>
+          ${sinP ? 'Poner precio' : eur(l.Precio_Unit)+'/u'+imp}</button>
+      </div>`;
+    }).join('');
+
+    const nota = (g.lineas||[]).find(l => l.Notas)?.Notas || '';
+    return `<div class="hist-pedido">
+      <div class="hist-ped-head" onclick="toggleGrupo('${gid}')">
+        <div class="hist-ped-ident">
+          <div class="hist-ped-titulo">${num}<span class="hist-ped-prov">${esc(g.Proveedor)}</span></div>
+          <div class="hist-ped-meta">
+            <span>${esc(fecha)}</span>${hora?`<span>${esc(hora)}</span>`:''}
+            <span>${g.totalLineas} producto${g.totalLineas>1?'s':''}</span>
+            <span>${g.totalUnidades} uds.</span>
+            ${g.total?`<span class="hist-total">${eur(g.total)}</span>`:''}
+          </div>
+        </div>
+        <span class="hist-ped-flecha" id="flecha-${gid}">▾</span>
+      </div>
+      <div class="hist-ped-body${abierto}" id="grupo-${gid}">
+        ${lineas}
+        ${nota?`<div class="hist-ped-nota">📌 ${esc(nota)}</div>`:''}
+        ${(g.base||g.sinPrecio)?`<div class="totales">
+          ${g.base?`<div class="tot-fila"><span>Base</span><span>${eur(g.base)}</span></div>
+          <div class="tot-fila"><span>IGIC</span><span>${eur(g.impuestos)}</span></div>
+          <div class="tot-fila tot-final"><span>Total factura</span><span>${eur(g.total)}</span></div>`:''}
+          ${g.sinPrecio?`<div class="tot-aviso">${g.sinPrecio} producto${g.sinPrecio>1?'s':''} sin precio — toca en "Poner precio" para completarlo</div>`:''}
+        </div>`:''}
+        <div class="hist-acc">
+          <button class="btn btn-outline btn-sm" onclick="repetirGrupo('${js(g.ID_Grupo)}',this)">Repetir este pedido</button>
+          ${String(g.ID_Grupo).indexOf('LEG-') === 0 ? ''
+            : `<button class="hist-undo" onclick="deshacerGrupo('${js(g.ID_Grupo)}','${js(g.Num_Pedido||'')}',this)">Deshacer pedido</button>`}
+        </div>
+      </div></div>`;
+  }).join('');
+}
+
+function toggleGrupo(gid){
+  const b = document.getElementById('grupo-'+gid), f = document.getElementById('flecha-'+gid);
+  if (!b) return;
+  const abierto = b.classList.toggle('show');
+  if (f) f.textContent = abierto ? '▴' : '▾';
+}
+
+function repetirGrupo(gid, btn){
+  const t = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Repitiendo…';
+  google.script.run
+    .withSuccessHandler(r => {
+      btn.disabled = false; btn.textContent = t;
+      if (!r || !r.ok){ showToast('Error: '+((r&&r.msg)||'no se pudo repetir')); return; }
+      showToast(`${r.lineas} producto${r.lineas>1?'s':''} de ${r.proveedor} en borradores`, 3500);
+      recargarPedidos();
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent = t; showToast('Error: '+e.message); })
+    .repetirGrupo(gid);
+}
+
+// Desde Hoy: trae a borradores el ultimo pedido de ese proveedor
+function repetirUltimo(prov, btn){
+  const t = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Trayendo…';
+  const fin = () => { btn.disabled = false; btn.textContent = t; };
+  google.script.run
+    .withSuccessHandler(r => {
+      if (!r || !r.ok){ fin(); showToast((r && r.msg) || 'No se pudo repetir', 4000); return; }
+      showToast(r.lineas + ' producto' + (r.lineas>1?'s':'') + ' del pedido del ' + r.fecha
+                + ' en borradores. Ajusta las cantidades.', 5000);
+      recargarPedidos();
+    })
+    .withFailureHandler(e => { fin(); showToast('Error: '+e.message); })
+    .repetirUltimo(prov);
+}
+
+// Deshacer un pedido confirmado por error: las líneas vuelven a estar
+// listas para pedir y el proveedor deja de contar como pedido ese día.
+function deshacerGrupo(gid, num, btn){
+  if (!confirm('¿Deshacer el pedido '+(num||'')+'?\n\n'
+    + 'Las líneas vuelven a Hoy como listas para pedir, con su nota y sus precios, '
+    + 'y se borra el número de pedido.\n\n'
+    + 'Si ya se lo mandaste al proveedor, avísale.')) return;
+  const t = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Deshaciendo…';
+  google.script.run
+    .withSuccessHandler(r => {
+      btn.disabled = false; btn.textContent = t;
+      if (!r || !r.ok){ showToast((r&&r.msg)||'No se pudo deshacer', 5000); return; }
+      showToast(r.lineas+' línea'+(r.lineas>1?'s':'')+' de '+r.proveedor+' vuelven a Hoy', 4000);
+      _histPend = true;
+      recargarPedidos(() => {
+        google.script.run
+          .withSuccessHandler(gs => { APP.historial = gs||[]; _histPend = false; renderHistorial(); })
+          .getHistorialGrupos(_verArchivo === true);
+      });
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent = t; showToast('Error: '+e.message); })
+    .deshacerPedidoRealizado(gid);
+}
+
+let _precioProv = '';
+function abrirModalPrecio(linea, proveedor){
+  _precioProv = proveedor;
+  const f = fichaDe(linea.Producto, proveedor);
+  const upc = f ? (Number(f.Unidades_Por_Caja)||1) : 1;
+  document.getElementById('mprecio-prod').innerHTML =
+    `<b>${esc(linea.Producto)}</b><span>${esc(proveedor)} · ${linea.Cantidad} uds.</span>`;
+  document.getElementById('mprecio-id').value = linea.ID_Pedido;
+  document.getElementById('mprecio-cant').value = linea.Cantidad;
+  document.getElementById('mprecio-upc').value = upc;
+  document.getElementById('mprecio-valor').value = Number(linea.Precio_Unit) || '';
+  document.getElementById('mprecio-tipo').value = 'unidad';
+  const imp = Number(linea.Impuesto_Pct) || (f?Number(f.Impuesto):0) || 7;
+  document.getElementById('mprecio-impuesto').value = String(imp);
+  document.getElementById('mprecio-ficha').checked = true;
+  actualizarPrecioLineaHint();
+  document.getElementById('modal-precio').classList.add('show');
+}
+
+function actualizarPrecioLineaHint(){
+  const el = document.getElementById('mprecio-hint');
+  const v = parseFloat(document.getElementById('mprecio-valor').value);
+  const tipo = document.getElementById('mprecio-tipo').value;
+  const upc = parseInt(document.getElementById('mprecio-upc').value)||1;
+  const cant = parseInt(document.getElementById('mprecio-cant').value)||0;
+  const imp = parseFloat(document.getElementById('mprecio-impuesto').value)||0;
+  if (!v || v <= 0){ el.textContent = ''; el.className = 'precio-hint'; return; }
+  const u = (tipo==='caja' && upc>1) ? v/upc : v;
+  const base = u*cant, total = base*(1+imp/100);
+  el.innerHTML = `${eur(u)} la unidad · esta línea suma <b>${eur(base)}</b> + IGIC = <b>${eur(total)}</b>`;
+  el.className = 'precio-hint on';
+}
+
+function guardarPrecioLinea(btn){
+  const v = parseFloat(document.getElementById('mprecio-valor').value)||0;
+  const tipo = document.getElementById('mprecio-tipo').value;
+  const upc = parseInt(document.getElementById('mprecio-upc').value)||1;
+  const imp = parseFloat(document.getElementById('mprecio-impuesto').value)||0;
+  if (v <= 0){ showToast('Pon un precio mayor que cero'); return; }
+  const u = (tipo==='caja' && upc>1) ? v/upc : v;
+  const enFicha = document.getElementById('mprecio-ficha').checked;
+
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  google.script.run
+    .withSuccessHandler(r => {
+      btn.disabled = false; btn.textContent = 'Guardar';
+      if (!r || !r.ok){ showToast('Error: '+((r&&r.msg)||'no se pudo guardar')); return; }
+      cerrarModal('modal-precio');
+      showToast(r.fichaActualizada ? 'Precio guardado y ficha actualizada' : 'Precio guardado', 3000);
+      if (_verArchivo){
+        google.script.run.withSuccessHandler(gs => { APP.historial = gs||[]; renderHistorial(); })
+          .getHistorialCompleto();
+      } else recargarDatos();
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent='Guardar'; showToast('Error: '+e.message); })
+    .actualizarPrecioLinea(document.getElementById('mprecio-id').value, u, imp, enFicha);
+}
+
+function alternarArchivo(btn){
+  const info = document.getElementById('hist-archivo-info');
+  if (_verArchivo){
+    _verArchivo = false;
+    btn.textContent = 'Ver también lo archivado';
+    info.textContent = 'Mostrando los últimos 2 meses';
+    recargarDatos(() => renderHistorial());
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Cargando…';
+  google.script.run
+    .withSuccessHandler(gs => {
+      btn.disabled = false; _verArchivo = true;
+      APP.historial = gs || [];
+      btn.textContent = 'Ver solo lo reciente';
+      info.textContent = 'Mostrando todo el histórico';
+      renderHistorial();
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent='Ver también lo archivado'; showToast('Error: '+e.message); })
+    .getHistorialCompleto();
+}
+
+// ════════════════════════════════════════════════════════════
+// AVISOS
+// ════════════════════════════════════════════════════════════
+function renderHorasAviso(){
+  const el = document.getElementById('av-horas');
+  if (!el) return;
+  el.innerHTML = _avHoras.length
+    ? _avHoras.map(h => `<span class="av-hora-chip">${esc(h)}<button onclick="quitarHora('${js(h)}')">×</button></span>`).join('')
+    : '<span class="av-horas-vacio">Añade al menos una hora</span>';
+}
+function anyadirHora(){
+  const v = document.getElementById('av-hora-nueva').value;
+  if (!v){ showToast('Elige una hora'); return; }
+  if (_avHoras.indexOf(v) !== -1){ showToast('Esa hora ya está'); return; }
+  _avHoras.push(v); _avHoras.sort(); renderHorasAviso();
+}
+function quitarHora(h){ _avHoras = _avHoras.filter(x => x !== h); renderHorasAviso(); }
+function cambiarModoAviso(m){
+  _avModo = m;
+  document.getElementById('av-modo-dias').classList.toggle('on', m === 'dias');
+  document.getElementById('av-modo-fecha').classList.toggle('on', m === 'fecha');
+  document.getElementById('av-bloque-dias').style.display  = m === 'dias'  ? '' : 'none';
+  document.getElementById('av-bloque-fecha').style.display = m === 'fecha' ? '' : 'none';
+}
+
+function renderAvisos(){
+  renderDiasSelectores();
+  renderHorasAviso();
+  const el = document.getElementById('av-lista');
+  if (!el) return;
+  const avs = APP.avisos || [];
+  if (!avs.length){
+    el.innerHTML = '<div class="empty"><div class="ico">🔔</div><p>Sin avisos todavía.</p></div>'; return;
+  }
+  el.innerHTML = avs.map(a => {
+    const horas = String(a.Hora||'').split(',').filter(String)
+      .map(h => `<span class="av-hora">${esc(h.trim())}</span>`).join('');
+    const cuando = a.Fecha
+      ? `<span class="av-fecha-chip">${esc(formatearFecha(a.Fecha))}</span>`
+      : `<span>${a.Dias ? esc(a.Dias.split(',').map(d => d.trim().slice(0,3)).join(' · ')) : 'Todos los días'}</span>`;
+    const aj = JSON.stringify(a).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+    return `<div class="av-item${a.Activo?'':' off'}">
+      <div class="av-item-info">
+        <div class="av-item-txt">${esc(a.Texto)}</div>
+        <div class="av-item-meta">${horas}${cuando}</div>
+      </div>
+      <div class="av-item-acc">
+        <button class="btn btn-outline btn-sm" onclick="toggleAviso('${js(a.ID_Aviso)}')">${a.Activo?'Pausar':'Activar'}</button>
+        <button class="btn btn-outline btn-sm" onclick='editarAviso(${aj})'>Editar</button>
+        <button class="bor-del-btn" onclick="borrarAviso('${js(a.ID_Aviso)}')">Eliminar</button>
+      </div></div>`;
+  }).join('');
+}
+
+function guardarAviso(){
+  const texto = document.getElementById('av-texto').value.trim();
+  if (!texto){ showToast('Escribe el texto del aviso'); return; }
+  if (!_avHoras.length){ showToast('Añade al menos una hora'); return; }
+  const fecha = _avModo === 'fecha' ? document.getElementById('av-fecha').value : '';
+  if (_avModo === 'fecha' && !fecha){ showToast('Elige la fecha'); return; }
+
+  google.script.run
+    .withSuccessHandler(r => {
+      if (!r || !r.ok){ showToast('Error al guardar'); return; }
+      cancelarEdicionAviso();
+      recargarDatos(() => showToast('Aviso guardado'));
+    })
+    .withFailureHandler(e => showToast('Error: '+e.message))
+    .saveAviso({
+      ID_Aviso: document.getElementById('av-id').value || '',
+      Texto: texto, Hora: _avHoras.join(','),
+      Dias: _avModo === 'dias' ? leerDias('av-dias') : '',
+      Fecha: fecha, Activo: true });
+}
+
+function editarAviso(a){
+  document.getElementById('av-id').value = a.ID_Aviso;
+  document.getElementById('av-texto').value = a.Texto;
+  _avHoras = String(a.Hora||'').split(',').map(h => h.trim()).filter(String).sort();
+  renderHorasAviso();
+  if (a.Fecha){
+    cambiarModoAviso('fecha');
+    document.getElementById('av-fecha').value = a.Fecha;
+    ponerDias('av-dias','');
+  } else {
+    cambiarModoAviso('dias');
+    document.getElementById('av-fecha').value = '';
+    ponerDias('av-dias', a.Dias);
+  }
+  document.getElementById('av-guardar').textContent = 'Guardar cambios';
+  document.getElementById('av-cancelar').style.display = '';
+  document.getElementById('av-texto').focus();
+}
+
+function cancelarEdicionAviso(){
+  document.getElementById('av-id').value = '';
+  document.getElementById('av-texto').value = '';
+  document.getElementById('av-fecha').value = '';
+  _avHoras = []; renderHorasAviso(); ponerDias('av-dias',''); cambiarModoAviso('dias');
+  document.getElementById('av-guardar').textContent = 'Crear aviso';
+  document.getElementById('av-cancelar').style.display = 'none';
+}
+
+function toggleAviso(id){
+  const a = (APP.avisos||[]).find(x => x.ID_Aviso === id);
+  if (!a) return;
+  google.script.run
+    .withSuccessHandler(() => recargarDatos(() => showToast(a.Activo?'Aviso pausado':'Aviso activado')))
+    .saveAviso({ ID_Aviso:a.ID_Aviso, Texto:a.Texto, Hora:a.Hora,
+                 Dias:a.Dias, Fecha:a.Fecha||'', Activo:!a.Activo });
+}
+function borrarAviso(id){
+  if (!confirm('¿Eliminar este aviso?')) return;
+  google.script.run.withSuccessHandler(() => recargarDatos(() => showToast('Aviso eliminado'))).deleteAviso(id);
+}
+
+// ════════════════════════════════════════════════════════════
+// AJUSTES
+// ════════════════════════════════════════════════════════════
+let _localesEdit = [];
+function renderLocalesEdit(){
+  const el = document.getElementById('local-list');
+  if (!el) return;
+  if (!_localesEdit.length)
+    _localesEdit = (APP.locales||[]).map(l => ({ nombre:localNombre(l), direccion:localDir(l) }));
+  el.innerHTML = _localesEdit.map((l,i) => `
+    <div class="local-item">
+      <input value="${esc(l.nombre)}" placeholder="Nombre" oninput="_localesEdit[${i}].nombre=this.value">
+      <input value="${esc(l.direccion)}" placeholder="Dirección" oninput="_localesEdit[${i}].direccion=this.value">
+      <button class="local-x" onclick="quitarLocal(${i})">×</button>
+    </div>`).join('');
+}
+function addLocal(){ _localesEdit.push({nombre:'',direccion:''}); renderLocalesEdit(); }
+function quitarLocal(i){ _localesEdit.splice(i,1); renderLocalesEdit(); }
+function guardarLocales(){
+  const v = _localesEdit.filter(l => l.nombre.trim());
+  if (!v.length){ showToast('Añade al menos un nombre'); return; }
+  google.script.run
+    .withSuccessHandler(r => {
+      if (!r || !r.ok){ showToast('Error: '+((r&&r.msg)||'')); return; }
+      APP.locales = v.map(l => ({ nombre:l.nombre.trim(), direccion:l.direccion.trim() }));
+      _localesEdit = [];
+      renderLocalesSel();
+      showToast('Locales guardados');
+    })
+    .withFailureHandler(e => showToast('Error: '+e.message))
+    .saveLocales(v.map(l => ({ nombre:l.nombre.trim(), direccion:l.direccion.trim() })));
+}
+
+function pintarInfoArchivo(info){
+  const el = document.getElementById('aj-archivo-info');
+  if (!el) return;
+  const n = info && info.lineas ? info.lineas : 0;
+  el.textContent = n ? `${n} línea${n>1?'s':''} guardada${n>1?'s':''} en el archivo`
+                     : 'Aún no hay nada archivado';
+}
+function archivarAhora(btn){
+  if (!confirm('¿Mover al archivo los pedidos realizados de hace más de 2 meses?\n\nNo se borra nada: quedan en la hoja "Pedidos Archivo".')) return;
+  const t = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Archivando…';
+  google.script.run
+    .withSuccessHandler(r => {
+      btn.disabled = false; btn.textContent = t;
+      if (!r || !r.ok){ showToast('Error: '+((r&&r.msg)||'')); return; }
+      showToast(r.movidos ? `${r.movidos} línea${r.movidos>1?'s':''} archivada${r.movidos>1?'s':''}`
+                          : 'No había nada que archivar', 3500);
+      recargarDatos();
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent = t; showToast('Error: '+e.message); })
+    .archivarPedidosAntiguos();
+}
+
+function renderHorasTg(){
+  const el = document.getElementById('tg-horas');
+  if (!el) return;
+  el.innerHTML = _tgHoras.length
+    ? _tgHoras.map(h => `<span class="av-hora-chip">${esc(h)}<button onclick="quitarHoraTg('${js(h)}')">×</button></span>`).join('')
+    : '<span class="av-horas-vacio">Sin horarios: no se enviarán avisos</span>';
+}
+function anyadirHoraTg(){
+  const v = document.getElementById('tg-hora-nueva').value;
+  if (!v) return;
+  if (_tgHoras.indexOf(v) !== -1){ showToast('Esa hora ya está'); return; }
+  _tgHoras.push(v); _tgHoras.sort(); renderHorasTg();
+}
+function quitarHoraTg(h){ _tgHoras = _tgHoras.filter(x => x !== h); renderHorasTg(); }
+function guardarHorariosTg(btn){
+  if (!_tgHoras.length){ showToast('Añade al menos una hora'); return; }
+  const t = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  google.script.run
+    .withSuccessHandler(r => {
+      btn.disabled = false; btn.textContent = t;
+      if (!r || !r.ok){ showToast('Error: '+((r&&r.msg)||'')); return; }
+      showToast('Horarios guardados y avisos reinstalados', 3500);
+      recargarDatos();
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent = t; showToast('Error: '+e.message); })
+    .saveTelegramHorarios(_tgHoras.join(','));
+}
+
+function pintarEstadoTelegram(cfg){
+  const el = document.getElementById('tg-estado');
+  if (!el) return;
+  const chatId = cfg && cfg.chatId ? cfg.chatId : '';
+  const token = cfg && cfg.hasToken;
+  const inp = document.getElementById('aj-tg-chatid');
+  if (inp && chatId) inp.value = chatId;
+  _tgHoras = String((cfg && cfg.horarios) || '07:30,14:10,18:00,21:00')
+    .split(',').map(h => h.trim()).filter(String).sort();
+  renderHorasTg();
+  if (token && chatId){
+    el.className = 'tg-estado ok';
+    el.innerHTML = `Configurado · Chat ID <b>${esc(chatId)}</b> · ${_tgHoras.length} horario${_tgHoras.length===1?'':'s'}`;
+  } else {
+    el.className = 'tg-estado falta';
+    const f = [];
+    if (!token)  f.push('el Bot Token');
+    if (!chatId) f.push('el Chat ID');
+    el.innerHTML = 'Falta '+f.join(' y ');
+  }
+}
+
+function guardarTelegramConfig(){
+  const token = document.getElementById('aj-tg-token').value.trim();
+  const chatId = document.getElementById('aj-tg-chatid').value.trim();
+  if (!token && !chatId){ showToast('Introduce token y/o chat ID'); return; }
+  google.script.run
+    .withSuccessHandler(r => {
+      if (!r || !r.ok){ showToast('Error al guardar'); return; }
+      showToast('Configuración guardada');
+      document.getElementById('aj-tg-token').value = '';
+      recargarDatos();
+    })
+    .withFailureHandler(e => showToast('Error: '+e.message))
+    .saveTelegramConfig({ token, chatId });
+}
+function probarTelegram(){
+  showToast('Enviando mensaje de prueba…', 3000);
+  google.script.run
+    .withSuccessHandler(r => showToast(r&&r.ok ? 'Telegram funcionando' : 'Error: '+((r&&r.msg)||'desconocido'), 4000))
+    .withFailureHandler(e => showToast('Error: '+e.message, 4000))
+    .testTelegramNotification();
+}
+function probarAvisoReal(){
+  showToast('Enviando el aviso real…', 3000);
+  google.script.run
+    .withSuccessHandler(() => showToast('Aviso enviado — revisa Telegram', 4000))
+    .withFailureHandler(e => showToast('Error: '+e.message, 4000))
+    .probarAvisoReal();
+}
+
+// ════════════════════════════════════════════════════════════
+// CONEXIÓN CON OTRAS APPS
+// ════════════════════════════════════════════════════════════
+// El código no se muestra aquí: se crea en la hoja de cálculo (pestaña Conexión).
+function pintarEstadoApi(configurado){
+  const el = document.getElementById('api-estado');
+  if (!el) return;
+  el.className = 'tg-estado ' + (configurado ? 'ok' : 'falta');
+  el.textContent = configurado ? 'Hay un código de conexión activo' : 'Todavía no hay código de conexión';
+  const ins = document.getElementById('api-instrucciones');
+  if (ins) ins.style.display = configurado ? 'block' : 'none';
+  const b = document.getElementById('api-crear');
+  if (b) b.style.display = configurado ? 'none' : '';
+}
+function crearCodigoApi(btn){
+  btn.disabled = true;
+  google.script.run
+    .withSuccessHandler(r => {
+      btn.disabled = false;
+      if (!r || !r.ok){ showToast((r && r.msg) || 'No se pudo crear el código', 5000); recargarDatos(); return; }
+      showToast('Código creado: está en la hoja Conexión', 4000);
+      pintarEstadoApi(true);
+    })
+    .withFailureHandler(e => { btn.disabled = false; showToast('Error: ' + e.message, 4000); })
+    .apiTokenCrear();
+}
+
+// ════════════════════════════════════════════════════════════
+// LIMPIADOR DE DUPLICADOS
+// ════════════════════════════════════════════════════════════
+let _limDatos = null;
+
+function abrirLimpiador(btn){
+  const t = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Analizando…';
+  google.script.run
+    .withSuccessHandler(d => { btn.disabled = false; btn.textContent = t; _limDatos = d; pintarLimpiador(); })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent = t; showToast('Error: '+e.message); })
+    .analizarDuplicados();
+}
+
+function pintarLimpiador(){
+  const el = document.getElementById('lim-lista');
+  const d = _limDatos;
+  let h = '';
+  const nada = !d.productos.length && !d.proveedores.length && !d.refsRotas.length;
+  if (nada){
+    el.innerHTML = '<div class="tg-estado ok">No hay duplicados. Todo limpio.</div>';
+    return;
+  }
+
+  if (d.refsRotas.length){
+    const vistos = {};
+    d.refsRotas.forEach(r => { vistos[r.proveedor] = (vistos[r.proveedor]||0)+1; });
+    h += '<div class="tot-aviso" style="margin-bottom:10px">Hay suministros que apuntan a un proveedor que no existe.</div>';
+    Object.keys(vistos).forEach((mal,i) => {
+      h += `<div class="lim-g" id="limr-${i}">
+        <div class="lim-tit">${esc(mal)}</div>
+        <div class="lim-sub">${vistos[mal]} suministro(s) apuntan aquí</div>
+        <select id="limr-sel-${i}"><option value="">— Elige el proveedor correcto —</option>
+          ${(APP.proveedores||[]).map(p => `<option value="${esc(p.Nombre)}">${esc(p.Nombre)}</option>`).join('')}
+        </select>
+        <div class="lim-acc"><button class="btn btn-primary btn-sm" onclick="limArreglarRef(${i},'${js(mal)}',this)">Sustituir</button></div>
+        <div class="lim-ok" id="limr-ok-${i}"></div></div>`;
+    });
+  }
+
+  if (d.proveedores.length){
+    h += '<div class="sec-title" style="margin:18px 0 10px">Proveedores repetidos</div>';
+    d.proveedores.forEach((g,i) => {
+      h += `<div class="lim-g" id="limv-${i}"><div class="lim-tit">${esc(g.opciones[0].nombre)}</div>
+        <div class="lim-sub">Elige cuál se queda. Lo que usaba a los demás pasará a apuntar a este.</div>`;
+      g.opciones.forEach((o,j) => {
+        h += `<label class="lim-op${j===0?' sel':''}">
+          <input type="radio" name="limv${i}" value="${esc(o.id)}"${j===0?' checked':''} onchange="limMarcar(this)">
+          <span class="lim-opc"><span class="lim-opn">${esc(o.nombre)}</span>
+          <span class="lim-opm">${esc(o.id)}${o.metodo?' · '+esc(o.metodo):''}${o.dias?' · '+esc(o.dias):''}</span></span>
+          <span class="lim-pill${o.usos?'':' cero'}">${o.usos} usos</span></label>`;
+      });
+      h += `<div class="lim-acc">
+          <button class="btn btn-primary btn-sm" onclick="limFusionarProv(${i},this)">Fusionar</button>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('limv-${i}').classList.add('hecho')">Dejar así</button>
+        </div><div class="lim-ok" id="limv-ok-${i}"></div></div>`;
+    });
+  }
+
+  if (d.productos.length){
+    h += '<div class="sec-title" style="margin:18px 0 10px">Productos repetidos</div>';
+    h += '<div class="vista-aviso">Al fusionar, <b>los proveedores de todas las filas pasan al producto que elijas</b>. '
+       + 'No se pierde ninguno: si era el mismo producto de dos proveedores, acabas con uno que tiene los dos.</div>';
+    d.productos.forEach((g,i) => {
+      h += `<div class="lim-g" id="limp-${i}">
+        <div class="lim-tit">${esc(g.nombre)}
+          <span class="lim-tag ${g.tipo}">${g.tipo==='multi'?'varios proveedores':'duplicado real'}</span></div>
+        <div class="lim-sub">${g.opciones.length} filas · se quedará una</div>`;
+      g.opciones.forEach((o,j) => {
+        h += `<label class="lim-op${j===0?' sel':''}">
+          <input type="radio" name="limp${i}" value="${esc(o.id)}" data-nom="${esc(o.nombre)}"${j===0?' checked':''} onchange="limMarcar(this)">
+          <span class="lim-opc"><span class="lim-opn">${esc(o.nombre)}</span>
+          <span class="lim-opm">${esc(o.id)}</span></span>
+          <span class="lim-pill${o.provs.length?'':' cero'}">${o.provs.length} prov.</span></label>`;
+      });
+      h += `<div class="lim-res"><b>Proveedores que quedarán:</b>
+        ${g.proveedores.map(p => `<span class="lim-chip">${esc(p)}</span>`).join('')}</div>
+        <div class="lim-acc">
+          <button class="btn btn-primary btn-sm" onclick="limFusionarProd(${i},this)">Fusionar</button>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('limp-${i}').classList.add('hecho')">Dejar así</button>
+        </div><div class="lim-ok" id="limp-ok-${i}"></div></div>`;
+    });
+  }
+  el.innerHTML = h;
+}
+
+function limMarcar(inp){
+  document.getElementsByName(inp.name).forEach(x => x.closest('.lim-op').classList.toggle('sel', x.checked));
+}
+
+function limFusionarProd(i, btn){
+  const g = _limDatos.productos[i];
+  const r = document.querySelector('input[name="limp'+i+'"]:checked');
+  if (!r) return;
+  const fuera = g.opciones.filter(o => o.id !== r.value).map(o => o.id);
+  if (!confirm(`Se queda "${r.dataset.nom}" con ${g.proveedores.length} proveedor(es).\n\n`
+             + `Se borran ${fuera.length} fila(s), pero sus proveedores se conservan.\n`
+             + 'Se guarda una copia antes de tocar nada.')) return;
+  btn.disabled = true; btn.textContent = 'Fusionando…';
+  google.script.run
+    .withSuccessHandler(x => {
+      if (!x.ok){ btn.disabled = false; btn.textContent='Fusionar'; showToast(x.msg); return; }
+      document.getElementById('limp-'+i).classList.add('hecho');
+      document.getElementById('limp-ok-'+i).textContent =
+        `Hecho: queda "${x.nombre}". ${x.borrados} fila(s) borrada(s), ${x.movidos} proveedor(es) trasladados`
+        + (x.unificados?`, ${x.unificados} repetido(s) unificado(s)`:'') + `, ${x.referencias} pedido(s) reapuntados.`;
+      recargarDatos();
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent='Fusionar'; showToast('Error: '+e.message); })
+    .fusionarProductos(r.value, fuera, r.dataset.nom);
+}
+
+function limFusionarProv(i, btn){
+  const g = _limDatos.proveedores[i];
+  const r = document.querySelector('input[name="limv'+i+'"]:checked');
+  if (!r) return;
+  const fuera = g.opciones.filter(o => o.id !== r.value).map(o => o.id);
+  if (!confirm(`Se borran ${fuera.length} proveedor(es) y todo lo que los usaba pasará al que queda.\n\nSe guarda una copia antes.`)) return;
+  btn.disabled = true; btn.textContent = 'Fusionando…';
+  google.script.run
+    .withSuccessHandler(x => {
+      if (!x.ok){ btn.disabled = false; btn.textContent='Fusionar'; showToast(x.msg); return; }
+      document.getElementById('limv-'+i).classList.add('hecho');
+      document.getElementById('limv-ok-'+i).textContent =
+        `Hecho: queda "${x.nombre}". ${x.borrados} borrado(s), ${x.referencias} referencia(s) reapuntadas.`;
+      recargarDatos();
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent='Fusionar'; showToast('Error: '+e.message); })
+    .fusionarProveedores(r.value, fuera);
+}
+
+function limArreglarRef(i, mal, btn){
+  const v = document.getElementById('limr-sel-'+i).value;
+  if (!v){ showToast('Elige el proveedor correcto'); return; }
+  btn.disabled = true; btn.textContent = 'Sustituyendo…';
+  google.script.run
+    .withSuccessHandler(x => {
+      document.getElementById('limr-'+i).classList.add('hecho');
+      document.getElementById('limr-ok-'+i).textContent = `Hecho: ${x.cambiadas} referencia(s) cambiadas a "${v}".`;
+      recargarDatos();
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent='Sustituir'; showToast('Error: '+e.message); })
+    .arreglarReferencia(mal, v);
+}
+
+// ════════════════════════════════════════════════════════════
+// GENERAR TEXTO DEL PEDIDO
+// ════════════════════════════════════════════════════════════
+function abrirModalGenerar(prov, local){
+  _genProv = prov; _genLocal = local;
+  // Un pedido es de un proveedor para un local: nunca se mezclan
+  const items = lineasDe(APP.listos, prov, local);
+  _genItems = items.map(b => ({
+    pedidoId:b.ID_Pedido, producto:b.Producto,
+    cantidad:parseInt(b.Cantidad)||1, provSel:prov, local:b.Local_Destino||'' }));
+
+  const gl = document.getElementById('gen-local');
+  const nombres = (APP.locales||[]).map(localNombre);
+  if (nombres.indexOf(local) === -1 && local) nombres.unshift(local);
+  gl.innerHTML = nombres.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  gl.value = local;
+  document.getElementById('gen-nota').value = '';
+  const chk = document.getElementById('gen-precios');
+  if (chk) chk.checked = false;   // nunca mandar precios sin quererlo
+  renderGenProductos();
+  actualizarTexto();
+  document.getElementById('modal-generar').classList.add('show');
+}
+
+function renderGenProductos(){
+  document.getElementById('gen-productos').innerHTML = _genItems.map((it,i) => `
+    <div class="hoy-item">
+      <div class="nombre">${esc(it.producto)}</div>
+      ${it.local?`<span class="local-chip">${esc(it.local)}</span>`:''}
+      <div class="qty-ctrl">
+        <input type="number" min="1" value="${it.cantidad}"
+          onchange="_genItems[${i}].cantidad=Math.max(1,parseInt(this.value)||1);actualizarTexto()">
+      </div></div>`).join('');
+}
+
+function actualizarDirPreview(){
+  const sel = document.getElementById('gen-local')?.value || '';
+  const o = (APP.locales||[]).find(l => localNombre(l) === sel);
+  const d = o ? localDir(o) : '';
+  document.getElementById('gen-dir-preview').textContent = d || '';
+}
+
+function actualizarTexto(){
+  actualizarDirPreview();
+  const localSel = document.getElementById('gen-local')?.value || '';
+  const o = (APP.locales||[]).find(l => localNombre(l) === localSel);
+  const dir = o ? localDir(o) : '';
+  const nota = document.getElementById('gen-nota')?.value?.trim() || '';
+  const hoy = new Date();
+  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+                 'septiembre','octubre','noviembre','diciembre'];
+  const fechaStr = `${dias[hoy.getDay()]} ${hoy.getDate()} de ${meses[hoy.getMonth()]}`;
+
+  const conPrecios = document.getElementById('gen-precios')?.checked;
+  let suma = 0;
+
+  const linea = it => {
+    const u = getUnidad(it.producto, it.provSel);
+    const f = fichaDe(it.producto, it.provSel);
+    // Sin codigo de proveedor: el pedido va por nombre, ellos ya saben sus referencias
+    let t = `\n• ${it.producto} × ${unidadLabel(u, it.cantidad)}`;
+    if (conPrecios && f && Number(f.Precio_Coste)){
+      const base = Number(f.Precio_Coste)*it.cantidad;
+      suma += base;
+      t += `  (${eur(f.Precio_Coste)}/u · ${eur(base)})`;
+    }
+    return t;
+  };
+
+  // Si el pedido va a varios locales el mensaje lo dice, en vez de
+  // poner uno solo en la cabecera y mentir
+  const locales = [];
+  _genItems.forEach(it => { if (locales.indexOf(it.local) === -1) locales.push(it.local); });
+  const varios = locales.filter(String).length > 1;
+
+  let txt = `Pedido — ${varios ? 'InTeks Solutions' : localSel}`;
+  if (!varios && dir) txt += `\n${dir}`;
+  txt += `\n${fechaStr}\n\nHola, buenas\n\nNos gustaría pedir lo siguiente:\n`;
+
+  if (varios){
+    locales.forEach(loc => {
+      const its = _genItems.filter(it => it.local === loc);
+      if (!its.length) return;
+      const ob = (APP.locales||[]).find(l => localNombre(l) === loc);
+      const d = ob ? localDir(ob) : '';
+      txt += `\n${loc || 'Sin local asignado'}`;
+      if (d) txt += ` — ${d}`;
+      its.forEach(it => { txt += linea(it); });
+      txt += `\n`;
+    });
+  } else _genItems.forEach(it => { txt += linea(it); });
+
+  if (conPrecios && suma) txt += `\n\nBase estimada: ${eur(suma)}`;
+  if (nota) txt += `\n\nNota: ${nota}`;
+  txt += `\n\nMuchas gracias`;
+  document.getElementById('texto-generado').textContent = txt;
+  const tp = document.getElementById('gen-titulo-prov');
+  if (tp) tp.textContent = _genProv + ' → ' + (document.getElementById('gen-local')?.value || '');
+  pintarBotonWA();
+}
+
+// Saca un número marcable de Info_Contacto. Si hay varios datos (correo,
+// nombre de contacto…) se queda con la primera secuencia que parezca teléfono.
+function telefonoDe(prov){
+  const p = (APP.proveedores||[]).find(x => x.Nombre === prov);
+  if (!p) return '';
+  const txt = String(p.Info_Contacto || '');
+  const m = txt.match(/\+?\d[\d\s().-]{7,}/);
+  if (!m) return '';
+  let n = m[0].replace(/[^\d+]/g, '');
+  if (n.indexOf('+') === 0) return n.slice(1);
+  if (n.length === 9) return '34' + n;          // España: falta el prefijo
+  if (n.indexOf('00') === 0) return n.slice(2);
+  return n;
+}
+
+function pintarBotonWA(){
+  const btn = document.getElementById('gen-wa');
+  const av  = document.getElementById('gen-wa-aviso');
+  if (!btn) return;
+  const tel = telefonoDe(_genProv);
+  btn.disabled = !tel;
+  if (tel){
+    av.style.display = 'none';
+  } else {
+    av.style.display = '';
+    av.textContent = _genProv + ' no tiene teléfono guardado. Añádelo en Proveedores, '
+      + 'en el campo de contacto, y el botón se activa.';
+  }
+}
+
+// WhatsApp no deja que una web envíe sola: abre el chat del proveedor con
+// el pedido ya escrito y solo queda darle a enviar.
+// WhatsApp pierde por el enlace todo lo que no quepa en un solo carácter
+// (emoji y similares). Se quitan antes de enviar: vale más un mensaje
+// limpio que uno lleno de rombos negros.
+function sinEmoji(t){
+  return String(t||'').replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')
+                      .replace(/\uFE0F/g, '')
+                      .replace(/[ \t]+\n/g, '\n');
+}
+
+function abrirWhatsApp(btn){
+  const tel = telefonoDe(_genProv);
+  if (!tel){ showToast('Ese proveedor no tiene teléfono guardado'); return; }
+  const txt = sinEmoji(document.getElementById('texto-generado').textContent);
+  // Se apunta lo que va en el mensaje, igual que al copiar
+  if (_genProv) _genEnviado[_genProv+'||'+_genLocal] = _genItems.map(x => x.pedidoId);
+  // Las barras van escapadas a proposito: ver nota sobre la minificacion
+  const base = 'https:\x2F\x2Fwa.me\x2F';
+  window.open(base + tel + '?text=' + encodeURIComponent(txt), '_blank');
+}
+
+function copiarTexto(btn){
+  const t = document.getElementById('texto-generado').textContent;
+  const fin = () => {
+    // Se apunta qué líneas llevaba el mensaje: si después se añade algo,
+    // al confirmar se avisa de que el proveedor no lo tiene
+    if (_genProv) _genEnviado[_genProv+'||'+_genLocal] = _genItems.map(x => x.pedidoId);
+    btn.textContent = 'Copiado'; setTimeout(() => btn.textContent = 'Copiar', 1800);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(fin).catch(() => manual());
+  } else manual();
+  function manual(){
+    const ta = document.createElement('textarea');
+    ta.value = t; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); fin(); } catch(e){ showToast('Copia el texto a mano'); }
+    document.body.removeChild(ta);
+  }
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  var _habia = !!navigator.serviceWorker.controller, _recargado = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (_habia && !_recargado) { _recargado = true; location.reload(); }
+    _habia = true;
+  });
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>
