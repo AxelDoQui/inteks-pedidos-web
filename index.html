@@ -865,6 +865,20 @@ input[type=checkbox]{width:auto}
   </div>
 </div>
 
+<!-- MODAL PROGRAMAR WHATSAPP -->
+<div class="overlay" id="modal-wa-prog">
+  <div class="modal">
+    <span class="modal-drag"></span>
+    <div class="modal-title">Enviar a una hora</div>
+    <div class="mb"><label>Día</label><input type="date" id="wa-prog-dia"></div>
+    <div class="mb"><label>Hora</label><input type="time" id="wa-prog-hora"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-wa-prog')">Cancelar</button>
+      <button class="btn btn-wa" id="wa-prog-ok" onclick="confirmarProgramarWA()">Programar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL PROVEEDOR -->
 <div class="overlay" id="modal-prov">
   <div class="modal">
@@ -1041,7 +1055,7 @@ input[type=checkbox]{width:auto}
 // Mismo contrato que escritorio/web/shim_escritorio.js. Sin dependencias, ES5.
 (function () {
   // Las escrituras las rellena el constructor de la PWA (no tocar a mano esta línea).
-  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos"];
+  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos", "encolarWhatsApp", "reclamarWhatsApp", "marcarWhatsApp", "cancelarWhatsApp"];
   var CLAVE = 'inteks_conexion_web';
   var RE_URL = /^https:\/\/script\.google\.com\/.+\/exec$/;
 
@@ -1238,7 +1252,7 @@ window.onerror = function(msg, url, linea, col){
 // ESTADO
 // ════════════════════════════════════════════════════════════
 const APP = { proveedores:[], productos:[], catalogo:[], borradores:[], listos:[],
-              historial:[], avisos:[], skips:{}, locales:[] };
+              historial:[], avisos:[], skips:{}, locales:[], whatsapp:{} };
 
 const DIAS_SEM   = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 const DIAS_LISTA = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
@@ -1315,14 +1329,17 @@ function arrancarApp(){
       if (_deCache && previo && d && typeof d === 'object'){
         _deCache = false;
         if (_vigilante){ clearTimeout(_vigilante); _vigilante = null; }
-        const igual = k => JSON.stringify(d[k]) === JSON.stringify(previo.d[k]);
+        // 'whatsapp' puede faltar (copia antigua o servidor sin cola): cuenta como vacío
+        const val = (o, k) => (o[k] === undefined && k === 'whatsapp') ? {} : o[k];
+        const igual = k => JSON.stringify(val(d, k)) === JSON.stringify(val(previo.d, k));
         const fijo = ['proveedores','catalogo','avisos','locales','tgConfig','archivo'].every(igual);
-        const movil = ['borradores','listos','skips'].every(igual);
+        const movil = ['borradores','listos','skips','whatsapp'].every(igual);
         if (fijo && movil) return;                      // nada nuevo
         if (fijo){                                      // solo se movieron pedidos
           APP.borradores = d.borradores || [];
           APP.listos     = d.listos     || [];
           APP.skips      = d.skips      || {};
+          APP.whatsapp   = d.whatsapp   || {};
           renderHoy(); renderBorradores(); renderArmar();
           renderAlertaBanner(); actualizarBadges();
           guardarCache();
@@ -1351,7 +1368,7 @@ function guardarCache(){
     localStorage.setItem(CLAVE_CACHE, JSON.stringify({ t: Date.now(), d: {
       proveedores: APP.proveedores, catalogo: APP.catalogo, borradores: APP.borradores,
       listos: APP.listos, avisos: APP.avisos, skips: APP.skips, locales: APP.locales,
-      tgConfig: _ultTg, archivo: _ultArchivo } }));
+      tgConfig: _ultTg, archivo: _ultArchivo, whatsapp: APP.whatsapp || {} } }));
   } catch(e){}
 }
 
@@ -1425,6 +1442,7 @@ function ponerDatos(d){
   APP.avisos      = d.avisos      || [];
   APP.skips       = d.skips       || {};
   APP.locales     = d.locales     || [];
+  APP.whatsapp    = d.whatsapp    || {};
   _ultTg = d.tgConfig || null; _ultArchivo = d.archivo || null;
   pintarEstadoTelegram(d.tgConfig);
   pintarEstadoApi(d.apiConfigurado);
@@ -1566,7 +1584,14 @@ function getUnidad(prod, prov){
 }
 function unidadLabel(unidad, cant){
   const u = String(unidad||'Unidad').toLowerCase();
-  const plural = cant === 1 ? u : (u.endsWith('z') ? u.slice(0,-1)+'ces' : u+'s');
+  // Plural castellano: vocal → +s; z → ces; -ón → ones; otra consonante → +es
+  let plural = u;
+  if (cant !== 1){
+    if (/[aeiouáéíóú]$/.test(u)) plural = u+'s';
+    else if (u.endsWith('z')) plural = u.slice(0,-1)+'ces';
+    else if (u.endsWith('ón')) plural = u.slice(0,-2)+'ones';
+    else plural = u+'es';
+  }
   return cant+' '+plural;
 }
 // La nota del pedido puede estar en cualquiera de sus líneas
@@ -1715,6 +1740,7 @@ function actualizarTotalesArmar(){
 // HOY
 // ════════════════════════════════════════════════════════════
 function renderHoy(){
+  waVigilar();
   const el = document.getElementById('hoy-lista');
   const hoy = new Date(), man = new Date(hoy); man.setDate(hoy.getDate()+1);
   const dHoy = DIAS_SEM[hoy.getDay()], dMan = DIAS_SEM[man.getDay()];
@@ -1791,6 +1817,7 @@ function bloquePedido(pref, prov, local, listos, borrs, varios){
       + (notaDe(listos)?`<div class="hoy-nota-order-ro">📝 ${esc(notaDe(listos))}</div>`:'')
       + bloqueTotales(listos)
       + `<button class="generar-btn" onclick="abrirModalGenerar('${pj}','${lj}')">Generar texto del pedido</button>
+         ${bloqueWhatsApp(pref, prov, local)}
          <div class="hoy-acciones">
            <button class="confirmar-btn" onclick="confirmarHoy('${pj}','${lj}',this)">Confirmar — pedido realizado</button>
            <button class="btn btn-outline btn-sm" onclick="devolverABorrador('${pj}','${lj}',this)" title="Si te faltó algo">Volver a borrador</button>
@@ -3504,19 +3531,21 @@ function actualizarDirPreview(){
   document.getElementById('gen-dir-preview').textContent = d || '';
 }
 
-function actualizarTexto(){
-  actualizarDirPreview();
-  const localSel = document.getElementById('gen-local')?.value || '';
-  const o = (APP.locales||[]).find(l => localNombre(l) === localSel);
+// Texto del pedido. Pura: no lee la pantalla, así sirve igual para el modal
+// que para el envío directo por WhatsApp desde la tarjeta.
+// items = [{producto, cantidad, provSel, local}] (la forma de _genItems).
+function construirTextoPedido(prov, local, items, opciones){
+  opciones = opciones || {};
+  const o = (APP.locales||[]).find(l => localNombre(l) === local);
   const dir = o ? localDir(o) : '';
-  const nota = document.getElementById('gen-nota')?.value?.trim() || '';
+  const nota = String(opciones.nota || '').trim();
   const hoy = new Date();
   const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
                  'septiembre','octubre','noviembre','diciembre'];
   const fechaStr = `${dias[hoy.getDay()]} ${hoy.getDate()} de ${meses[hoy.getMonth()]}`;
 
-  const conPrecios = document.getElementById('gen-precios')?.checked;
+  const conPrecios = !!opciones.conPrecios;
   let suma = 0;
 
   const linea = it => {
@@ -3535,16 +3564,16 @@ function actualizarTexto(){
   // Si el pedido va a varios locales el mensaje lo dice, en vez de
   // poner uno solo en la cabecera y mentir
   const locales = [];
-  _genItems.forEach(it => { if (locales.indexOf(it.local) === -1) locales.push(it.local); });
+  items.forEach(it => { if (locales.indexOf(it.local) === -1) locales.push(it.local); });
   const varios = locales.filter(String).length > 1;
 
-  let txt = `Pedido — ${varios ? 'InTeks Solutions' : localSel}`;
+  let txt = `Pedido — ${varios ? 'InTeks Solutions' : local}`;
   if (!varios && dir) txt += `\n${dir}`;
   txt += `\n${fechaStr}\n\nHola, buenas\n\nNos gustaría pedir lo siguiente:\n`;
 
   if (varios){
     locales.forEach(loc => {
-      const its = _genItems.filter(it => it.local === loc);
+      const its = items.filter(it => it.local === loc);
       if (!its.length) return;
       const ob = (APP.locales||[]).find(l => localNombre(l) === loc);
       const d = ob ? localDir(ob) : '';
@@ -3553,12 +3582,21 @@ function actualizarTexto(){
       its.forEach(it => { txt += linea(it); });
       txt += `\n`;
     });
-  } else _genItems.forEach(it => { txt += linea(it); });
+  } else items.forEach(it => { txt += linea(it); });
 
   if (conPrecios && suma) txt += `\n\nBase estimada: ${eur(suma)}`;
   if (nota) txt += `\n\nNota: ${nota}`;
   txt += `\n\nMuchas gracias`;
-  document.getElementById('texto-generado').textContent = txt;
+  return txt;
+}
+
+function actualizarTexto(){
+  actualizarDirPreview();
+  const localSel = document.getElementById('gen-local')?.value || '';
+  const nota = document.getElementById('gen-nota')?.value?.trim() || '';
+  const conPrecios = document.getElementById('gen-precios')?.checked;
+  document.getElementById('texto-generado').textContent =
+    construirTextoPedido(_genProv, localSel, _genItems, { nota: nota, conPrecios: conPrecios });
   const tp = document.getElementById('gen-titulo-prov');
   if (tp) tp.textContent = _genProv + ' → ' + (document.getElementById('gen-local')?.value || '');
   pintarBotonWA();
@@ -3614,6 +3652,202 @@ function abrirWhatsApp(btn){
   // Las barras van escapadas a proposito: ver nota sobre la minificacion
   const base = 'https:\x2F\x2Fwa.me\x2F';
   window.open(base + tel + '?text=' + encodeURIComponent(txt), '_blank');
+}
+
+// ── Envío por WhatsApp desde la tarjeta del pedido ──
+// El navegador no envía solo: por defecto el pedido se deja en la cola de
+// Code.gs y lo manda el PC del escritorio. El escritorio sustituye este
+// gancho por el envío directo.
+window.enviarWhatsAppPedido = function(prov, local){
+  const items = lineasDe(APP.listos, prov, local);
+  const datos = {
+    proveedor: prov, local: local, telefono: telefonoDe(prov),
+    texto: textoTarjeta(prov, local),
+    idsPedido: items.map(b => b.ID_Pedido), origen: 'web' };
+  return new Promise((res, rej) => {
+    google.script.run
+      .withSuccessHandler(r => {
+        APP.whatsapp = APP.whatsapp || {};
+        APP.whatsapp[prov+'||'+local] = { estado:'pendiente', detalle:'', hora:'' };
+        res(r);
+      })
+      .withFailureHandler(e => rej(e))
+      .encolarWhatsApp(datos);
+  });
+};
+
+// El mismo texto del modal, pero sin pasar por él y conservando los emojis
+function textoTarjeta(prov, local){
+  const lin = lineasDe(APP.listos, prov, local);
+  const items = lin.map(b => ({
+    pedidoId:b.ID_Pedido, producto:b.Producto,
+    cantidad:parseInt(b.Cantidad)||1, provSel:prov, local:b.Local_Destino||'' }));
+  return construirTextoPedido(prov, local, items, { nota: notaDe(lin), conPrecios:false });
+}
+
+function estadoWhatsApp(prov, local){
+  const e = APP.whatsapp && APP.whatsapp[prov+'||'+local];
+  // «cancelado» no se muestra: la tarjeta vuelve a ofrecer los botones
+  return (e && e.estado && e.estado !== 'cancelado') ? e : null;
+}
+
+// 'AAAA-MM-DD HH:mm' → fecha local (los envíos se programan en la hora del dispositivo)
+function waProgFecha(t){
+  const m = String(t||'').match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/);
+  return m ? new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]) : null;
+}
+const WA_DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+function waProgHora(t){ return waProgFecha(t) ? String(t).slice(11) : ''; }
+// «jueves»; a más de 6 días se añade día/mes para no confundir
+function waProgDia(t){
+  const d = waProgFecha(t); if (!d) return '';
+  const dif = (d.getTime() - Date.now()) / 86400000;
+  return WA_DIAS[d.getDay()] + (dif > 6 ? ' ' + d.getDate() + '/' + (d.getMonth()+1) : '');
+}
+
+function etiquetaWhatsApp(e){
+  switch (e.estado){
+    case 'pendiente':
+      if (e.programadoPara && waProgFecha(e.programadoPara))
+        return '⏰ Programado: ' + waProgDia(e.programadoPara) + ' ' + waProgHora(e.programadoPara);
+      return '⏳ En cola';
+    case 'enviando':  return '📤 Enviando';
+    case 'enviado':   return '✔ Enviado a las ' + (e.hora || '');
+    case 'error':     return '⚠ Falló: ' + (e.detalle || '');
+    case 'caducado':
+      if (e.programadoPara && waProgFecha(e.programadoPara))
+        return '⌛ No salió a las ' + waProgHora(e.programadoPara);
+      return '⌛ Caducó: no salió a tiempo';
+    case 'revisar':   return '❓ Revisa el chat: no sé si salió';
+  }
+  return '';
+}
+
+// Lo que se ve junto a «Generar texto»: etiqueta del estado y/o el botón
+function bloqueWhatsApp(pref, prov, local){
+  const e = estadoWhatsApp(prov, local);
+  const ocupado = e && (e.estado === 'pendiente' || e.estado === 'enviando' || e.estado === 'enviado');
+  const etiq = e ? `<span class="wa-estado">${esc(etiquetaWhatsApp(e))}</span>` : '';
+  if (ocupado){
+    const prog = e.estado === 'pendiente' && e.programadoPara && e.id;
+    return etiq + (prog ? `<button class="btn btn-outline btn-sm wa-cancelar"
+      onclick="cancelarWhatsAppTarjeta('${js(prov)}','${js(local)}',this)">Cancelar</button>` : '');
+  }
+  const sinTel = !telefonoDe(prov);
+  const pc = clavePL(pref, prov, local);
+  const dis = sinTel ? ' disabled title="Este proveedor no tiene teléfono guardado"' : '';
+  return etiq + `<button class="btn btn-wa generar-btn" id="wa-card-${pc}"${dis}
+    onclick="enviarWhatsAppTarjeta('${js(prov)}','${js(local)}',this)">Enviar por WhatsApp</button>
+    <button class="btn btn-outline generar-btn" id="wa-prog-card-${pc}"${dis}
+    onclick="abrirProgramarWA('${js(prov)}','${js(local)}')">Enviar a una hora…</button>`;
+}
+
+// ── Programar y cancelar ──
+let _waProg = null;
+function _ymd(d){ const p = n => String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function abrirProgramarWA(prov, local){
+  if (!telefonoDe(prov)){ showToast('Este proveedor no tiene teléfono guardado'); return; }
+  _waProg = { prov: prov, local: local };
+  const man = new Date(); man.setDate(man.getDate()+1);
+  const dia = document.getElementById('wa-prog-dia');
+  dia.min = _ymd(new Date());
+  dia.value = _ymd(man);
+  document.getElementById('wa-prog-hora').value = '08:00';
+  document.getElementById('modal-wa-prog').classList.add('show');
+}
+function confirmarProgramarWA(){
+  if (!_waProg) return;
+  const prov = _waProg.prov, local = _waProg.local;
+  const dia = document.getElementById('wa-prog-dia').value;
+  const hora = document.getElementById('wa-prog-hora').value;
+  const f = waProgFecha(dia + ' ' + hora);
+  if (!f){ showToast('Elige el día y la hora'); return; }
+  if (f.getTime() < Date.now()){ showToast('Esa hora ya pasó: elige una futura'); return; }
+  const tel = telefonoDe(prov);
+  if (!tel){ showToast('Este proveedor no tiene teléfono guardado'); return; }
+  const items = lineasDe(APP.listos, prov, local);
+  if (!items.length) return;
+  const cuando = WA_DIAS[f.getDay()] + ' ' + f.getDate() + '/' + (f.getMonth()+1);
+  if (!confirm('¿Programar a ' + prov + ' (' + tel + ') para el ' + cuando + ' a las ' + hora + '?')) return;
+  const prog = dia + ' ' + hora;
+  cerrarModal('modal-wa-prog');
+  // Siempre por la cola (también en el escritorio): la hora la respeta el emisor
+  google.script.run
+    .withSuccessHandler(r => {
+      _genEnviado[prov+'||'+local] = items.map(b => b.ID_Pedido);
+      APP.whatsapp = APP.whatsapp || {};
+      APP.whatsapp[prov+'||'+local] = { id: (r && r.id) || '', estado:'pendiente', detalle:'', hora:'', programadoPara: prog };
+      renderHoy();
+    })
+    .withFailureHandler(e => showToast('No se pudo programar: ' + ((e && e.message) || e || 'error'), 6000))
+    .encolarWhatsApp({
+      proveedor: prov, local: local, telefono: tel, texto: textoTarjeta(prov, local),
+      idsPedido: items.map(b => b.ID_Pedido), origen: 'web', programadoPara: prog });
+}
+function cancelarWhatsAppTarjeta(prov, local, boton){
+  const e = estadoWhatsApp(prov, local);
+  if (!e || !e.id) return;
+  if (!confirm('¿Cancelar el envío programado a ' + prov + '?')) return;
+  boton.disabled = true;
+  google.script.run
+    .withSuccessHandler(() => {
+      APP.whatsapp[prov+'||'+local] = Object.assign({}, e, { estado:'cancelado', detalle:'Cancelado' });
+      renderHoy();
+    })
+    .withFailureHandler(er => {
+      boton.disabled = false;
+      showToast('No se pudo cancelar: ' + ((er && er.message) || er || 'error'), 6000);
+    })
+    .cancelarWhatsApp(e.id);
+}
+
+// ── Repintado del estado mientras haya envíos en curso ──
+// El estado solo cambia en el servidor: se relee cada 15 s mientras haya algún
+// envío en cola/enviando/programado; se para solo y se pausa con la pestaña oculta.
+let _waTimer = null;
+function waHayActivos(){
+  return Object.keys(APP.whatsapp || {}).some(k => {
+    const s = (APP.whatsapp[k] || {}).estado;
+    return s === 'pendiente' || s === 'enviando';
+  });
+}
+function waVigilar(){
+  if (_waTimer || document.hidden || !waHayActivos()) return;
+  _waTimer = setTimeout(() => {
+    _waTimer = null;
+    if (document.hidden) return;
+    google.script.run
+      .withSuccessHandler(d => {
+        if (d && typeof d === 'object'){
+          APP.whatsapp = d.whatsapp || {};
+          renderHoy();
+          guardarCache();
+        }
+        waVigilar();
+      })
+      .withFailureHandler(() => waVigilar())
+      .getAppData();
+  }, window._waRepintaMs || 15000);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) waVigilar(); });
+
+function enviarWhatsAppTarjeta(prov, local, boton){
+  const tel = telefonoDe(prov);
+  if (!tel){ showToast('Este proveedor no tiene teléfono guardado'); return; }
+  if (!confirm('¿Enviar a ' + prov + ' (' + tel + ')?')) return;
+  const items = lineasDe(APP.listos, prov, local);
+  if (!items.length) return;
+  boton.disabled = true;
+  Promise.resolve(window.enviarWhatsAppPedido(prov, local)).then(() => {
+    _genEnviado[prov+'||'+local] = items.map(b => b.ID_Pedido);
+    APP.whatsapp = APP.whatsapp || {};
+    if (!estadoWhatsApp(prov, local))
+      APP.whatsapp[prov+'||'+local] = { estado:'pendiente', detalle:'', hora:'' };
+    renderHoy();
+  }).catch(e => {
+    boton.disabled = false;
+    showToast('No se pudo enviar: ' + ((e && e.message) || e || 'error'), 6000);
+  });
 }
 
 function copiarTexto(btn){
