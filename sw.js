@@ -1,6 +1,6 @@
 // Service worker de InTeks Pedidos (PWA). El constructor sustituye los marcadores de las dos
 // líneas siguientes (versión y lista de archivos a precachear).
-var VERSION = "PWA-2026.11.14.6-c116beb1";
+var VERSION = "PWA-2026.11.14.6-4aad97b2";
 var ARCHIVOS = ["./", "index.html", "manifest.webmanifest", "icono-192.png", "icono-512.png", "icono-maskable-512.png"];
 var PREFIJO = 'inteks-pwa-';
 var CACHE = PREFIJO + VERSION;

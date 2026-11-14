@@ -1857,9 +1857,9 @@ function bloquePedido(pref, prov, local, listos, borrs, varios){
       + (notaDe(listos)?`<div class="hoy-nota-order-ro">📝 ${esc(notaDe(listos))}</div>`:'')
       + bloqueTotales(listos)
       + `<button class="generar-btn" onclick="abrirModalGenerar('${pj}','${lj}')">Generar texto del pedido</button>
-         ${bloqueWhatsApp(pref, prov, local)}
+         ${vieneAlLocal(prov) ? '' : bloqueWhatsApp(pref, prov, local)}
          <div class="hoy-acciones">
-           <button class="confirmar-btn" onclick="confirmarHoy('${pj}','${lj}',this)">Confirmar — pedido realizado</button>
+           <button class="confirmar-btn" onclick="confirmarHoy('${pj}','${lj}',this)">${vieneAlLocal(prov) ? 'Confirmar — ya vino el proveedor' : 'Confirmar — pedido realizado'}</button>
            <button class="btn btn-outline btn-sm" onclick="devolverABorrador('${pj}','${lj}',this)" title="Si te faltó algo">Volver a borrador</button>
          </div>`;
     return `<div class="ped-bloque listo${varios?'':' ped-solo'}">${cab}<div class="ped-cuerpo">${cuerpo}</div></div>`;
@@ -1875,8 +1875,11 @@ function bloquePedido(pref, prov, local, listos, borrs, varios){
         <div class="nota-estado" id="nota-estado-${k}"></div>
       </div>`
     + bloqueTotales(borrs, prov+'||'+local)
-    + `<button class="btn btn-success btn-block enviar-pedido-btn"
-        onclick="abrirEnviarPedido('${pj}','${lj}','${k}')">${telefonoDe(prov) ? 'Enviar pedido' : 'Marcar como pedido'}</button>`;
+    + (vieneAlLocal(prov)
+      ? `<button class="btn btn-success btn-block dejar-local-btn"
+          onclick="dejarParaCuandoVenga('${pj}','${lj}','${k}',this)">Dejar para cuando venga</button>`
+      : `<button class="btn btn-success btn-block enviar-pedido-btn"
+          onclick="abrirEnviarPedido('${pj}','${lj}','${k}')">${telefonoDe(prov) ? 'Enviar pedido' : 'Marcar como pedido'}</button>`);
   return `<div class="ped-bloque${varios?'':' ped-solo'}">${cab}<div class="ped-cuerpo">${cuerpo}</div></div>`;
 }
 
@@ -3886,6 +3889,24 @@ function waVigilar(){
   }, window._waRepintaMs || 15000);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) waVigilar(); });
+
+// Proveedor que viene al local: no se le manda nada, el pedido se deja preparado y se queda en Hoy
+// («Listos para pedir») hasta que llega; entonces se confirma con «Confirmar — ya vino el proveedor».
+function vieneAlLocal(prov){
+  const p = (APP.proveedores||[]).find(x => x.Nombre === prov);
+  return !!p && String(p.Metodo_Pedido||'').toLowerCase().includes('local');
+}
+function dejarParaCuandoVenga(prov, local, k, btn){
+  btn.disabled = true;
+  guardarNotaPL(prov, local, k).then(() => {
+    const ids = lineasDe(APP.borradores, prov, local).map(b => b.ID_Pedido);
+    if (!ids.length){ btn.disabled = false; return; }
+    return _pasarAListo(prov, local, ids).then(() => {
+      showToast(local + ': preparado en Hoy para cuando venga ' + prov, 4000);
+      recargarPedidos();
+    });
+  }).catch(e => { btn.disabled = false; showToast('Error: ' + ((e && e.message) || e), 5000); });
+}
 
 // ── Enviar pedido en un paso: listo → enviar → realizado ──
 let _ep = null;
