@@ -291,6 +291,7 @@ input[type=checkbox]{width:auto}
 .metodo-badge{font-size:.68rem;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
 .metodo-local{background:#dcfce7;color:#15803d}
 .metodo-remoto{background:#e0f2fe;color:#0369a1}
+.wa-fallo{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--am-light);color:#92400e;border:1px solid var(--am-mid);border-radius:10px;padding:8px 12px;margin-bottom:8px;font-size:.82rem}
 .aviso-dia{font-size:.66rem;background:var(--am-light);color:#92400e;border:1px solid var(--am-mid);
   padding:2px 8px;border-radius:99px;font-weight:600;white-space:nowrap}
 .hoy-nota-prov{background:#fffbeb;border-left:3px solid var(--am);padding:9px 14px;font-size:.8rem;
@@ -1739,6 +1740,27 @@ function actualizarTotalesArmar(){
 // ════════════════════════════════════════════════════════════
 // HOY
 // ════════════════════════════════════════════════════════════
+// ── Aviso de envíos de WhatsApp que no salieron ──
+// Falló, caducó o quedó dudoso: se ve arriba de «Hoy» hasta que se pulsa «Entendido» (se recuerda en este
+// dispositivo). Sale de APP.whatsapp (últimos 2 días), así que se ve igual en el PC, el móvil y la web.
+const WA_FALLOS = { error:'No se pudo enviar', caducado:'No salió a tiempo', revisar:'Revisa el chat, no sé si salió' };
+function waVistos(){ try { return JSON.parse(localStorage.getItem('wa_fallos_vistos') || '[]'); } catch(e){ return []; } }
+function waEntendido(id){
+  const v = waVistos(); if (v.indexOf(id) === -1) v.push(id);
+  try { localStorage.setItem('wa_fallos_vistos', JSON.stringify(v.slice(-100))); } catch(e){}
+  renderHoy();
+}
+function avisoFallosWhatsApp(){
+  const vistos = waVistos(), w = APP.whatsapp || {};
+  const filas = Object.keys(w).filter(k => WA_FALLOS[(w[k] || {}).estado] && w[k].id && vistos.indexOf(w[k].id) === -1)
+    .map(k => {
+      const e = w[k], p = k.split('||');
+      return `<div class="wa-fallo"><div><b>⚠ WhatsApp a ${esc(p[0])}${p[1] ? ' ('+esc(p[1])+')' : ''}:</b> ${esc(WA_FALLOS[e.estado])}${e.detalle ? ' — '+esc(e.detalle) : ''}</div>
+        <button class="btn btn-outline btn-sm" onclick="waEntendido(${esc(JSON.stringify(e.id))})">Entendido</button></div>`;
+    });
+  return filas.join('');
+}
+
 function renderHoy(){
   waVigilar();
   const el = document.getElementById('hoy-lista');
@@ -1758,7 +1780,7 @@ function renderHoy(){
   const conListos = [];
   (APP.listos||[]).forEach(b => { if (conListos.indexOf(b.Proveedor) === -1) conListos.push(b.Proveedor); });
 
-  let html = '';
+  let html = avisoFallosWhatsApp();
   if (conListos.length){
     html += seccionTitulo('Listos para pedir','preparados, se pueden enviar ya',conListos.length,'');
     html += conListos.map(n => {
