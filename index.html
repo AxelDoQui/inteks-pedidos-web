@@ -208,7 +208,7 @@ input[type=checkbox]{width:auto}
 <nav>
   <button class="active" data-sec="hoy" onclick="irA('hoy',this)"><span class="nav-lbl">Hoy</span>
     <span class="badge" id="bdg-hoy" style="display:none"></span></button>
-  <button data-sec="anotar" onclick="irA('anotar',this)"><span class="nav-lbl">Anotar</span>
+  <button data-sec="anotar" onclick="irA('anotar',this)"><span class="nav-lbl">Pedir</span>
     <span class="badge" id="bdg-anotar" style="display:none"></span></button>
   <button data-sec="historial" onclick="irA('historial',this)"><span class="nav-lbl">Historial</span></button>
   <button id="btn-mas" data-sec="mas" onclick="toggleMas(event)"><span class="nav-lbl">Más ▾</span></button>
@@ -631,7 +631,7 @@ input[type=checkbox]{width:auto}
 <div class="sec" id="sec-anotar">
 <div class="anotar-split">
 <div class="anotar-form">
-  <div class="sec-title">Anotar productos</div>
+  <div class="sec-title">Pedir</div>
   <div class="card">
     <div class="mb">
       <label>Proveedor</label>
@@ -667,13 +667,13 @@ input[type=checkbox]{width:auto}
       <label>Local destino</label>
       <select id="a-local"></select>
     </div>
-    <button class="btn btn-primary btn-block" onclick="anyadirALista()">Añadir a la lista</button>
+    <button class="btn btn-primary btn-block" id="btn-anyadir" onclick="anyadirALista()">Añadir al pedido</button>
 
     <div class="lista-pend" id="anotar-lista-wrap" style="display:none">
       <div class="lista-pend-tit" id="anotar-lista-tit"></div>
       <div id="anotar-lista-items"></div>
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button class="btn btn-success" style="flex:1" id="btn-guardar-todos" onclick="guardarTodos()">Añadir al pedido</button>
+        <button class="btn btn-success" style="flex:1" id="btn-guardar-todos" onclick="guardarTodos()">Guardar la lista pendiente</button>
         <button class="btn btn-outline btn-sm" onclick="limpiarListaAnotar()">Vaciar</button>
       </div>
     </div>
@@ -876,6 +876,24 @@ input[type=checkbox]{width:auto}
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="cerrarModal('modal-wa-prog')">Cancelar</button>
       <button class="btn btn-wa" id="wa-prog-ok" onclick="confirmarProgramarWA()">Programar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ENVIAR PEDIDO (vista previa) -->
+<div class="overlay" id="modal-enviar-pedido">
+  <div class="modal">
+    <span class="modal-drag"></span>
+    <div class="modal-title" id="ep-titulo">Enviar pedido</div>
+    <div class="mb">
+      <label id="ep-destino"></label>
+      <textarea id="ep-texto" readonly rows="10" style="width:100%;box-sizing:border-box"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-enviar-pedido')">Cancelar</button>
+      <button class="btn btn-outline" id="ep-copiar" onclick="epCopiar()">Copiar</button>
+      <button class="btn btn-outline" id="ep-prog" onclick="epProgramar()">A una hora…</button>
+      <button class="btn btn-wa" id="ep-ok" onclick="epEnviar()">Enviar ahora</button>
     </div>
   </div>
 </div>
@@ -1857,7 +1875,8 @@ function bloquePedido(pref, prov, local, listos, borrs, varios){
         <div class="nota-estado" id="nota-estado-${k}"></div>
       </div>`
     + bloqueTotales(borrs, prov+'||'+local)
-    + `<button class="btn btn-success btn-block" onclick="marcarListoPL('${pj}','${lj}','${k}',this)">Listo para pedir</button>`;
+    + `<button class="btn btn-success btn-block enviar-pedido-btn"
+        onclick="abrirEnviarPedido('${pj}','${lj}','${k}')">${telefonoDe(prov) ? 'Enviar pedido' : 'Marcar como pedido'}</button>`;
   return `<div class="ped-bloque${varios?'':' ped-solo'}">${cab}<div class="ped-cuerpo">${cuerpo}</div></div>`;
 }
 
@@ -1928,7 +1947,7 @@ function tarjetaProveedor(p, listos, borradores, iso, esHoy, avisoDia){
     cuerpo = `<div class="hoy-vacio">
         <div class="hoy-vacio-txt">Nada preparado</div>
         <div class="hoy-vacio-btns">
-          <button class="btn btn-primary btn-sm" onclick="irA('anotar')">Anotar</button>
+          <button class="btn btn-primary btn-sm" onclick="anotarProveedor('${pj}')">Pedir</button>
           <button class="btn btn-outline btn-sm" onclick="repetirUltimo('${pj}',this)">Repetir último</button>
           <button class="btn btn-outline btn-sm" onclick="marcarYaPedido('${pj}','${iso}',this)">Ya pedido</button>
           <button class="btn btn-outline btn-sm" onclick="marcarNoPedir('${pj}','${iso}',this)">No pedir nada</button>
@@ -1976,6 +1995,38 @@ function deshacerNoPedir(prov, iso, btn){
     .quitarEstadoDia(prov, iso);
 }
 
+// Marca las líneas como pedido realizado. Si al proveedor no le queda nada suelto, se marca como
+// resuelto del día (sale en «Ya resuelto hoy» y Telegram deja de recordarlo). Devuelve {num, resuelto}.
+// Rechaza solo si falla marcarPedidoRealizado; un fallo al marcar el día no rompe lo ya hecho.
+function marcarRealizadoYResuelto(prov, local, ids){
+  return new Promise((res, rej) => {
+    google.script.run
+      .withSuccessHandler(r => {
+        delete _genEnviado[prov+'||'+local];
+        const num = (r && r.numPedido) || '';
+        const quedan = (APP.borradores||[]).concat(APP.listos||[])
+          .filter(b => b.Proveedor === prov && ids.indexOf(b.ID_Pedido) === -1);
+        if (quedan.length){
+          _histPend = true; recargarPedidos();
+          res({ num: num, resuelto: false, quedan: quedan.length });
+          return;
+        }
+        const iso = fechaISO(new Date());
+        const fin = () => { _histPend = true; recargarPedidos(); res({ num: num, resuelto: true, quedan: 0 }); };
+        google.script.run
+          .withSuccessHandler(e2 => {
+            APP.skips = APP.skips || {};
+            APP.skips[prov+'||'+iso] = (e2 && e2.estado) ? e2.estado : { tipo:'pedido', hora:'' };
+            fin();
+          })
+          .withFailureHandler(() => fin())
+          .marcarEstadoDia(prov, iso, 'pedido');
+      })
+      .withFailureHandler(e => rej(e))
+      .marcarPedidoRealizado(ids);
+  });
+}
+
 function confirmarHoy(prov, local, btn){
   const ids = lineasDe(APP.listos, prov, local).map(b => b.ID_Pedido);
   if (!ids.length) return;
@@ -1990,34 +2041,11 @@ function confirmarHoy(prov, local, btn){
   }
 
   btn.disabled = true; btn.textContent = 'Confirmando…';
-  google.script.run
-    .withSuccessHandler(r => {
-      delete _genEnviado[prov+'||'+local];
-      const num = (r && r.numPedido) || '';
-      // Confirmar es la señal más clara de que ya se pidió. Si al proveedor
-      // no le queda nada suelto, se marca como resuelto del día: así sale en
-      // "Ya resuelto hoy" y Telegram deja de recordarlo.
-      const quedan = (APP.borradores||[]).concat(APP.listos||[])
-        .filter(b => b.Proveedor === prov && ids.indexOf(b.ID_Pedido) === -1);
-      if (quedan.length){
-        showToast(local+' — pedido '+num+' confirmado. Al proveedor le quedan '
-          + quedan.length + ' línea' + (quedan.length>1?'s':''), 4500);
-        _histPend = true; recargarPedidos();
-        return;
-      }
-      const iso = fechaISO(new Date());
-      google.script.run
-        .withSuccessHandler(e2 => {
-          APP.skips = APP.skips || {};
-          APP.skips[prov+'||'+iso] = (e2 && e2.estado) ? e2.estado : { tipo:'pedido', hora:'' };
-          showToast(local+' — pedido '+num+' confirmado', 3500);
-          _histPend = true; recargarPedidos();
-        })
-        .withFailureHandler(() => { showToast(local+' — pedido '+num+' confirmado', 3500); _histPend = true; recargarPedidos(); })
-        .marcarEstadoDia(prov, iso, 'pedido');
-    })
-    .withFailureHandler(e => { btn.disabled = false; btn.textContent='Confirmar — pedido realizado'; showToast('Error: '+e.message); })
-    .marcarPedidoRealizado(ids);
+  marcarRealizadoYResuelto(prov, local, ids).then(r => {
+    showToast(r.quedan
+      ? local+' — pedido '+r.num+' confirmado. Al proveedor le quedan ' + r.quedan + ' línea' + (r.quedan>1?'s':'')
+      : local+' — pedido '+r.num+' confirmado', r.quedan ? 4500 : 3500);
+  }).catch(e => { btn.disabled = false; btn.textContent='Confirmar — pedido realizado'; showToast('Error: '+e.message); });
 }
 
 function devolverABorrador(prov, local, btn){
@@ -2033,21 +2061,6 @@ function devolverABorrador(prov, local, btn){
     .withFailureHandler(e => { btn.disabled = false; btn.textContent='Volver a borrador'; showToast('Error: '+e.message); })
     .volverABorrador(ids);
 }
-
-function marcarListoPL(prov, local, k, btn){
-  btn.disabled = true; btn.textContent = 'Guardando…';
-  // Primero se confirma que la nota está en la hoja, y después se cambia
-  // de estado: así no se pierde por una carrera entre las dos llamadas
-  guardarNotaPL(prov, local, k).then(() => {
-    const ids = lineasDe(APP.borradores, prov, local).map(b => b.ID_Pedido);
-    if (!ids.length){ btn.disabled = false; btn.textContent = 'Listo para pedir'; return; }
-    google.script.run
-      .withSuccessHandler(() => { showToast(local+': listo para pedir', 3000); recargarPedidos(); })
-      .withFailureHandler(e => { btn.disabled = false; btn.textContent='Listo para pedir'; showToast('Error: '+e.message); })
-      .marcarListoParaPedir(ids);
-  });
-}
-
 
 // ════════════════════════════════════════════════════════════
 // ANOTAR
@@ -2174,6 +2187,17 @@ function actualizarUPCHint(){
   h.textContent = `${cant} caja${cant>1?'s':''} = ${cant*upc} unidades`;
 }
 
+// Desde Hoy: abre Pedir con ese proveedor ya elegido (y el foco listo para buscar el producto)
+function anotarProveedor(prov){
+  irA('anotar');
+  const s = document.getElementById('a-prov');
+  if (s){ s.value = prov; filtrarProds(); }
+  const b = document.getElementById('a-prod-buscar');
+  if (b && !b.disabled) b.focus();
+}
+
+// «Añadir» guarda el producto como borrador al momento: ya no hay lista intermedia ni un segundo
+// botón. El proveedor y el local se conservan para seguir anotando; vuelve el foco al buscador.
 function anyadirALista(){
   const prov = document.getElementById('a-prov').value;
   const prod = document.getElementById('a-prod').value;
@@ -2185,30 +2209,36 @@ function anyadirALista(){
 
   const upc = getUPC(prod, prov);
   const cantReal = tipo === 'cajas' ? cantInput*upc : cantInput;
-
-  // Mismo producto, proveedor y local: se suma en vez de duplicar,
-  // así al proveedor no le llega dos veces la misma línea
-  const i = _anotarLista.findIndex(it => it.Producto === prod && it.Proveedor === prov && it.Local_Destino === loc);
-  if (i !== -1){
-    const previo = _anotarLista[i].Cantidad;
-    _anotarLista[i].Cantidad = previo + cantReal;
-    _anotarLista[i]._etiqueta = unidadLabel(getUnidad(prod,prov), _anotarLista[i].Cantidad);
-    guardarListaAnotar(); limpiarProducto();
+  const hecho = () => {
+    limpiarProducto();
     document.getElementById('a-cant').value = 1;
-    renderAnotarLista();
-    showToast(`${prod}: ${previo} + ${cantReal} = ${_anotarLista[i].Cantidad}`, 3500);
+    const b = document.getElementById('a-prod-buscar');
+    if (b && !b.disabled) b.focus();
+  };
+
+  // Mismo producto, proveedor y local ya en borrador: se suma en vez de duplicar,
+  // así al proveedor no le llega dos veces la misma línea
+  const previo = (APP.borradores||[]).find(b => b.Producto === prod && b.Proveedor === prov && localDe(b) === loc);
+  if (previo){
+    const antes = parseInt(previo.Cantidad)||0;
+    saveQty(previo.ID_Pedido, antes + cantReal);
+    showToast(`${prod}: ${antes} + ${cantReal} = ${antes + cantReal}`, 3500);
+    hecho();
     return;
   }
 
-  const etiqueta = tipo === 'cajas'
-    ? `${cantInput} caja${cantInput>1?'s':''} (${cantReal} un.)`
-    : unidadLabel(getUnidad(prod,prov), cantReal);
-  _anotarLista.push({ Proveedor:prov, Producto:prod, Cantidad:cantReal, Local_Destino:loc, _etiqueta:etiqueta });
-  guardarListaAnotar();
-  limpiarProducto();
-  document.getElementById('a-cant').value = 1;
-  renderAnotarLista();
-  showToast(prod+' añadido');
+  const btn = document.getElementById('btn-anyadir');
+  btn.disabled = true;
+  google.script.run
+    .withSuccessHandler(r => {
+      btn.disabled = false;
+      if (!r || !r.ok){ showToast('Error al guardar'); return; }
+      showToast(prod+' añadido');
+      hecho();
+      recargarPedidos();
+    })
+    .withFailureHandler(e => { btn.disabled = false; showToast('Error: '+e.message); })
+    .savePedidos([{ Proveedor:prov, Producto:prod, Cantidad:cantReal, Local_Destino:loc }]);
 }
 
 // La lista pendiente se guarda en el dispositivo: si se bloquea el móvil
@@ -2250,7 +2280,7 @@ function guardarTodos(){
   btn.disabled = true; btn.textContent = 'Guardando…';
   google.script.run
     .withSuccessHandler(r => {
-      btn.disabled = false; btn.textContent = 'Guardar todos como borradores';
+      btn.disabled = false; btn.textContent = 'Guardar la lista pendiente';
       if (!r || !r.ok){ showToast('Error al guardar'); return; }
       const n = _anotarLista.length;
       _anotarLista = []; guardarListaAnotar();
@@ -2258,7 +2288,7 @@ function guardarTodos(){
       recargarPedidos();
     })
     .withFailureHandler(e => {
-      btn.disabled = false; btn.textContent = 'Guardar todos como borradores';
+      btn.disabled = false; btn.textContent = 'Guardar la lista pendiente';
       showToast('Error: '+e.message);
     })
     .savePedidos(_anotarLista.map(it => ({
@@ -3699,8 +3729,8 @@ window.enviarWhatsAppPedido = function(prov, local){
 };
 
 // El mismo texto del modal, pero sin pasar por él y conservando los emojis
-function textoTarjeta(prov, local){
-  const lin = lineasDe(APP.listos, prov, local);
+function textoTarjeta(prov, local, lista){
+  const lin = lineasDe(lista || APP.listos, prov, local);
   const items = lin.map(b => ({
     pedidoId:b.ID_Pedido, producto:b.Producto,
     cantidad:parseInt(b.Cantidad)||1, provSel:prov, local:b.Local_Destino||'' }));
@@ -3780,6 +3810,7 @@ function abrirProgramarWA(prov, local){
 function confirmarProgramarWA(){
   if (!_waProg) return;
   const prov = _waProg.prov, local = _waProg.local;
+  const unPaso = _waProg.unPaso;
   const dia = document.getElementById('wa-prog-dia').value;
   const hora = document.getElementById('wa-prog-hora').value;
   const f = waProgFecha(dia + ' ' + hora);
@@ -3800,6 +3831,9 @@ function confirmarProgramarWA(){
       APP.whatsapp = APP.whatsapp || {};
       APP.whatsapp[prov+'||'+local] = { id: (r && r.id) || '', estado:'pendiente', detalle:'', hora:'', programadoPara: prog };
       renderHoy();
+      if (unPaso) marcarRealizadoYResuelto(prov, local, unPaso)
+        .then(r => showToast(local + ' — pedido ' + r.num + ' programado', 3500))
+        .catch(e2 => showToast('Programado, pero no se pudo marcar como realizado: ' + ((e2 && e2.message) || e2), 7000));
     })
     .withFailureHandler(e => showToast('No se pudo programar: ' + ((e && e.message) || e || 'error'), 6000))
     .encolarWhatsApp({
@@ -3852,6 +3886,82 @@ function waVigilar(){
   }, window._waRepintaMs || 15000);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) waVigilar(); });
+
+// ── Enviar pedido en un paso: listo → enviar → realizado ──
+let _ep = null;
+function _gs(fn, arg){
+  return new Promise((res, rej) => { google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](arg); });
+}
+// El pedido pasa a «listo» en la hoja y también en pantalla, para que lo que sigue (texto, gancho de
+// envío, programar) trabaje sobre las líneas listas, igual que las tarjetas de siempre.
+function _pasarAListo(prov, local, ids){
+  return _gs('marcarListoParaPedir', ids).then(() => {
+    const mov = (APP.borradores||[]).filter(b => ids.indexOf(b.ID_Pedido) !== -1);
+    APP.borradores = (APP.borradores||[]).filter(b => ids.indexOf(b.ID_Pedido) === -1);
+    APP.listos = (APP.listos||[]).concat(mov.map(b => Object.assign({}, b, { Estado: 'Listo para Pedir' })));
+  });
+}
+function abrirEnviarPedido(prov, local, k){
+  const lin = lineasDe(APP.borradores, prov, local);
+  if (!lin.length) return;
+  guardarNotaPL(prov, local, k).then(() => {
+    const lin2 = lineasDe(APP.borradores, prov, local);
+    if (!lin2.length) return;
+    const tel = telefonoDe(prov);
+    _ep = { prov: prov, local: local, tel: tel, ids: lin2.map(b => b.ID_Pedido) };
+    document.getElementById('ep-titulo').textContent = tel ? 'Enviar pedido' : 'Marcar como pedido';
+    document.getElementById('ep-destino').textContent = tel ? prov + ' (' + tel + ') · ' + local : prov + ' · ' + local + ' — sin teléfono: copia el texto y pídelo a mano';
+    document.getElementById('ep-texto').value = textoTarjeta(prov, local, APP.borradores);
+    document.getElementById('ep-ok').textContent = tel ? 'Enviar ahora' : 'Marcar como pedido';
+    document.getElementById('ep-ok').disabled = false;
+    document.getElementById('ep-prog').style.display = tel ? '' : 'none';
+    document.getElementById('ep-copiar').style.display = tel ? 'none' : '';
+    document.getElementById('modal-enviar-pedido').classList.add('show');
+  });
+}
+function epCopiar(){
+  const t = document.getElementById('ep-texto');
+  try { navigator.clipboard.writeText(t.value); showToast('Texto copiado'); }
+  catch(e){ t.select(); try { document.execCommand('copy'); showToast('Texto copiado'); } catch(e2){ showToast('Copia el texto a mano'); } }
+}
+function epEnviar(){
+  if (!_ep) return;
+  const e = _ep, btn = document.getElementById('ep-ok');
+  btn.disabled = true;
+  let salio = false;      // el mensaje ya salió: un fallo posterior NO debe invitar a reenviarlo
+  _pasarAListo(e.prov, e.local, e.ids)
+    .then(() => e.tel ? window.enviarWhatsAppPedido(e.prov, e.local) : null)
+    .then(() => {
+      salio = !!e.tel;
+      _genEnviado[e.prov+'||'+e.local] = e.ids.slice();
+      return marcarRealizadoYResuelto(e.prov, e.local, e.ids);
+    })
+    .then(r => {
+      cerrarModal('modal-enviar-pedido'); _ep = null;
+      showToast(e.local + ' — pedido ' + r.num + (e.tel ? ' enviado' : ' marcado como pedido'), 3500);
+    })
+    .catch(err => {
+      btn.disabled = false;
+      if (salio){
+        cerrarModal('modal-enviar-pedido'); _ep = null;
+        showToast('El mensaje SÍ salió, pero no se pudo marcar como realizado: ' + ((err && err.message) || err || 'error') + '. No lo reenvíes: confírmalo en la tarjeta del pedido.', 9000);
+      } else {
+        showToast('No se pudo enviar: ' + ((err && err.message) || err || 'error') + '. El pedido queda listo para reintentar.', 7000);
+      }
+      recargarPedidos();
+    });
+}
+// Programar: el pedido queda «listo» y se abre el selector de hora de siempre; al programarse bien pasa a realizado.
+function epProgramar(){
+  if (!_ep) return;
+  const e = _ep;
+  _pasarAListo(e.prov, e.local, e.ids).then(() => {
+    cerrarModal('modal-enviar-pedido');
+    abrirProgramarWA(e.prov, e.local);
+    _waProg.unPaso = e.ids.slice();
+    _ep = null;
+  }).catch(err => showToast('Error: ' + ((err && err.message) || err), 5000));
+}
 
 function enviarWhatsAppTarjeta(prov, local, boton){
   const tel = telefonoDe(prov);
