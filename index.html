@@ -3677,8 +3677,21 @@ function pintarBotonWA(){
   const av  = document.getElementById('gen-wa-aviso');
   if (!btn) return;
   const tel = telefonoDe(_genProv);
+  const local = vieneAlLocal(_genProv);
+  // Un proveedor que viene al local no recibe WhatsApp: se esconden los dos botones y se explica.
+  // El de «automático» lo pone el escritorio y lo repinta cada pocos segundos: se le deja marcado.
+  const auto = document.getElementById('gen-wa-auto');
+  if (auto){
+    auto.dataset.bloqueado = (tel && !local) ? '' : '1';
+    if (auto.dataset.bloqueado) auto.style.display = 'none';
+    else if (auto.dataset.visible === '1') auto.style.display = '';
+  }
+  btn.style.display = local ? 'none' : '';
   btn.disabled = !tel;
-  if (tel){
+  if (local){
+    av.style.display = '';
+    av.textContent = _genProv + ' viene al local: no se le manda por WhatsApp. Copia el texto si lo necesitas.';
+  } else if (tel){
     av.style.display = 'none';
   } else {
     av.style.display = '';
