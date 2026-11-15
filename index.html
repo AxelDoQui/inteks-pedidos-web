@@ -854,6 +854,23 @@ input[type=checkbox]{width:auto}
   </div>
 
   <div class="card">
+    <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Revisión de mi jefa</div>
+    <div style="font-size:.78rem;color:var(--tx2);margin-bottom:12px">Con un número guardado aparece «Enviar a mi jefa para revisar» en los pedidos. Solo se le manda el texto: nada se marca como pedido.</div>
+    <div class="mb">
+      <label>Nombre</label>
+      <input type="text" id="aj-rev-nombre" placeholder="Mi jefa" maxlength="40" autocomplete="off">
+    </div>
+    <div class="mb">
+      <label>Teléfono (WhatsApp)</label>
+      <input type="tel" id="aj-rev-tel" placeholder="Ej: 34600000001" autocomplete="off">
+    </div>
+    <div class="tg-btn-row">
+      <button class="btn btn-primary btn-sm" onclick="guardarRevisionConfig()">Guardar</button>
+      <button class="btn btn-outline btn-sm" onclick="quitarRevisionConfig()">Quitar</button>
+    </div>
+  </div>
+
+  <div class="card">
     <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Conexión con otras apps</div>
     <div style="font-size:.78rem;color:var(--tx2);margin-bottom:12px">Para conectar la app de escritorio a esta hoja</div>
     <div id="api-estado" class="tg-estado">Comprobando…</div>
@@ -878,23 +895,6 @@ input[type=checkbox]{width:auto}
       <button class="btn btn-wa" id="wa-prog-ok" onclick="confirmarProgramarWA()">Programar</button>
     </div>
   </div>
-  <div class="card">
-    <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Revisión de mi jefa</div>
-    <div style="font-size:.78rem;color:var(--tx2);margin-bottom:12px">Con un número guardado aparece «Enviar a mi jefa para revisar» en los pedidos. Solo se le manda el texto: nada se marca como pedido.</div>
-    <div class="mb">
-      <label>Nombre</label>
-      <input type="text" id="aj-rev-nombre" placeholder="Mi jefa" maxlength="40" autocomplete="off">
-    </div>
-    <div class="mb">
-      <label>Teléfono (WhatsApp)</label>
-      <input type="tel" id="aj-rev-tel" placeholder="Ej: 34600000001" autocomplete="off">
-    </div>
-    <div class="tg-btn-row">
-      <button class="btn btn-primary btn-sm" onclick="guardarRevisionConfig()">Guardar</button>
-      <button class="btn btn-outline btn-sm" onclick="quitarRevisionConfig()">Quitar</button>
-    </div>
-  </div>
-
 </div>
 
 <!-- MODAL ENVIAR PEDIDO (vista previa) -->
