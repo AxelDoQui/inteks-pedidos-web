@@ -878,6 +878,23 @@ input[type=checkbox]{width:auto}
       <button class="btn btn-wa" id="wa-prog-ok" onclick="confirmarProgramarWA()">Programar</button>
     </div>
   </div>
+  <div class="card">
+    <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Revisión de mi jefa</div>
+    <div style="font-size:.78rem;color:var(--tx2);margin-bottom:12px">Con un número guardado aparece «Enviar a mi jefa para revisar» en los pedidos. Solo se le manda el texto: nada se marca como pedido.</div>
+    <div class="mb">
+      <label>Nombre</label>
+      <input type="text" id="aj-rev-nombre" placeholder="Mi jefa" maxlength="40" autocomplete="off">
+    </div>
+    <div class="mb">
+      <label>Teléfono (WhatsApp)</label>
+      <input type="tel" id="aj-rev-tel" placeholder="Ej: 34600000001" autocomplete="off">
+    </div>
+    <div class="tg-btn-row">
+      <button class="btn btn-primary btn-sm" onclick="guardarRevisionConfig()">Guardar</button>
+      <button class="btn btn-outline btn-sm" onclick="quitarRevisionConfig()">Quitar</button>
+    </div>
+  </div>
+
 </div>
 
 <!-- MODAL ENVIAR PEDIDO (vista previa) -->
@@ -892,6 +909,7 @@ input[type=checkbox]{width:auto}
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="cerrarModal('modal-enviar-pedido')">Cancelar</button>
       <button class="btn btn-outline" id="ep-copiar" onclick="epCopiar()">Copiar</button>
+      <button class="btn btn-outline" id="ep-rev" style="display:none" onclick="epRevision(this)">Enviar a mi jefa</button>
       <button class="btn btn-outline" id="ep-prog" onclick="epProgramar()">A una hora…</button>
       <button class="btn btn-wa" id="ep-ok" onclick="epEnviar()">Enviar ahora</button>
     </div>
@@ -1074,7 +1092,7 @@ input[type=checkbox]{width:auto}
 // Mismo contrato que escritorio/web/shim_escritorio.js. Sin dependencias, ES5.
 (function () {
   // Las escrituras las rellena el constructor de la PWA (no tocar a mano esta línea).
-  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos", "encolarWhatsApp", "reclamarWhatsApp", "marcarWhatsApp", "cancelarWhatsApp"];
+  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos", "encolarWhatsApp", "reclamarWhatsApp", "marcarWhatsApp", "cancelarWhatsApp", "guardarRevisionWhatsApp"];
   var CLAVE = 'inteks_conexion_web';
   var RE_URL = /^https:\/\/script\.google\.com\/.+\/exec$/;
 
@@ -1348,10 +1366,10 @@ function arrancarApp(){
       if (_deCache && previo && d && typeof d === 'object'){
         _deCache = false;
         if (_vigilante){ clearTimeout(_vigilante); _vigilante = null; }
-        // 'whatsapp' puede faltar (copia antigua o servidor sin cola): cuenta como vacío
-        const val = (o, k) => (o[k] === undefined && k === 'whatsapp') ? {} : o[k];
+        // 'whatsapp' y 'revision' pueden faltar (copia antigua o servidor sin ellas): cuentan como vacías
+        const val = (o, k) => (o[k] === undefined && k === 'whatsapp') ? {} : (o[k] === undefined && k === 'revision') ? { nombre: '', telefono: '' } : o[k];
         const igual = k => JSON.stringify(val(d, k)) === JSON.stringify(val(previo.d, k));
-        const fijo = ['proveedores','catalogo','avisos','locales','tgConfig','archivo'].every(igual);
+        const fijo = ['proveedores','catalogo','avisos','locales','tgConfig','archivo','revision'].every(igual);
         const movil = ['borradores','listos','skips','whatsapp'].every(igual);
         if (fijo && movil) return;                      // nada nuevo
         if (fijo){                                      // solo se movieron pedidos
@@ -1387,7 +1405,7 @@ function guardarCache(){
     localStorage.setItem(CLAVE_CACHE, JSON.stringify({ t: Date.now(), d: {
       proveedores: APP.proveedores, catalogo: APP.catalogo, borradores: APP.borradores,
       listos: APP.listos, avisos: APP.avisos, skips: APP.skips, locales: APP.locales,
-      tgConfig: _ultTg, archivo: _ultArchivo, whatsapp: APP.whatsapp || {} } }));
+      tgConfig: _ultTg, archivo: _ultArchivo, whatsapp: APP.whatsapp || {}, revision: APP.revision } }));
   } catch(e){}
 }
 
@@ -1462,6 +1480,7 @@ function ponerDatos(d){
   APP.skips       = d.skips       || {};
   APP.locales     = d.locales     || [];
   APP.whatsapp    = d.whatsapp    || {};
+  APP.revision    = d.revision    || { nombre: '', telefono: '' };
   _ultTg = d.tgConfig || null; _ultArchivo = d.archivo || null;
   pintarEstadoTelegram(d.tgConfig);
   pintarEstadoApi(d.apiConfigurado);
@@ -1773,7 +1792,10 @@ function avisoFallosWhatsApp(){
   const filas = Object.keys(w).filter(k => WA_FALLOS[(w[k] || {}).estado] && w[k].id && vistos.indexOf(w[k].id) === -1)
     .map(k => {
       const e = w[k], p = k.split('||');
-      return `<div class="wa-fallo"><div><b>⚠ WhatsApp a ${esc(p[0])}${p[1] ? ' ('+esc(p[1])+')' : ''}:</b> ${esc(WA_FALLOS[e.estado])}${e.detalle ? ' — '+esc(e.detalle) : ''}</div>
+      const dest = p[0].indexOf('REV·') === 0
+        ? 'tu jefa (revisión de ' + esc(p[0].slice(4)) + (p[1] ? ' ('+esc(p[1])+')' : '') + ')'
+        : esc(p[0]) + (p[1] ? ' ('+esc(p[1])+')' : '');
+      return `<div class="wa-fallo"><div><b>⚠ WhatsApp a ${dest}:</b> ${esc(WA_FALLOS[e.estado])}${e.detalle ? ' — '+esc(e.detalle) : ''}</div>
         <button class="btn btn-outline btn-sm" onclick="waEntendido(${esc(JSON.stringify(e.id))})">Entendido</button></div>`;
     });
   return filas.join('');
@@ -1857,7 +1879,7 @@ function bloquePedido(pref, prov, local, listos, borrs, varios){
       + (notaDe(listos)?`<div class="hoy-nota-order-ro">📝 ${esc(notaDe(listos))}</div>`:'')
       + bloqueTotales(listos)
       + `<button class="generar-btn" onclick="abrirModalGenerar('${pj}','${lj}')">Generar texto del pedido</button>
-         ${vieneAlLocal(prov) ? '' : bloqueWhatsApp(pref, prov, local)}
+         ${bloqueWhatsApp(pref, prov, local)}
          <div class="hoy-acciones">
            <button class="confirmar-btn" onclick="confirmarHoy('${pj}','${lj}',this)">${vieneAlLocal(prov) ? 'Confirmar — ya vino el proveedor' : 'Confirmar — pedido realizado'}</button>
            <button class="btn btn-outline btn-sm" onclick="devolverABorrador('${pj}','${lj}',this)" title="Si te faltó algo">Volver a borrador</button>
@@ -1878,8 +1900,12 @@ function bloquePedido(pref, prov, local, listos, borrs, varios){
     + (vieneAlLocal(prov)
       ? `<button class="btn btn-success btn-block dejar-local-btn"
           onclick="dejarParaCuandoVenga('${pj}','${lj}','${k}',this)">Dejar para cuando venga</button>`
+        + (telefonoDe(prov) ? `<button class="btn btn-wa btn-block enviar-local-wa-btn"
+          onclick="abrirEnviarPedido('${pj}','${lj}','${k}')">Enviar por WhatsApp</button>` : '')
       : `<button class="btn btn-success btn-block enviar-pedido-btn"
-          onclick="abrirEnviarPedido('${pj}','${lj}','${k}')">${telefonoDe(prov) ? 'Enviar pedido' : 'Marcar como pedido'}</button>`);
+          onclick="abrirEnviarPedido('${pj}','${lj}','${k}')">${telefonoDe(prov) ? 'Enviar pedido' : 'Marcar como pedido'}</button>`)
+    + (revisionTel() ? `<button class="btn btn-outline btn-block revision-btn"
+          onclick="enviarARevision('${pj}','${lj}','${k}',this)">Enviar a ${esc(revisionNombre())} para revisar</button>` : '');
   return `<div class="ped-bloque${varios?'':' ped-solo'}">${cab}<div class="ped-cuerpo">${cuerpo}</div></div>`;
 }
 
@@ -3328,6 +3354,7 @@ function pintarEstadoTelegram(cfg){
   const token = cfg && cfg.hasToken;
   const inp = document.getElementById('aj-tg-chatid');
   if (inp && chatId) inp.value = chatId;
+  pintarRevisionConfig();
   _tgHoras = String((cfg && cfg.horarios) || '07:30,14:10,18:00,21:00')
     .split(',').map(h => h.trim()).filter(String).sort();
   renderHorasTg();
@@ -3341,6 +3368,25 @@ function pintarEstadoTelegram(cfg){
     if (!chatId) f.push('el Chat ID');
     el.innerHTML = 'Falta '+f.join(' y ');
   }
+}
+
+function pintarRevisionConfig(){
+  const n = document.getElementById('aj-rev-nombre'), t = document.getElementById('aj-rev-tel');
+  if (n) n.value = (APP.revision && APP.revision.telefono) ? (APP.revision.nombre || '') : '';
+  if (t) t.value = (APP.revision && APP.revision.telefono) || '';
+}
+function _guardarRevision(nombre, telefono){
+  google.script.run
+    .withSuccessHandler(() => { showToast('Guardado'); recargarDatos(); })
+    .withFailureHandler(e => showToast('Error: ' + ((e && e.message) || e)))
+    .guardarRevisionWhatsApp({ nombre: nombre, telefono: telefono });
+}
+function guardarRevisionConfig(){
+  _guardarRevision(document.getElementById('aj-rev-nombre').value.trim(), document.getElementById('aj-rev-tel').value.trim());
+}
+function quitarRevisionConfig(){
+  document.getElementById('aj-rev-tel').value = '';
+  _guardarRevision(document.getElementById('aj-rev-nombre').value.trim(), '');
 }
 
 function guardarTelegramConfig(){
@@ -3678,19 +3724,18 @@ function pintarBotonWA(){
   if (!btn) return;
   const tel = telefonoDe(_genProv);
   const local = vieneAlLocal(_genProv);
-  // Un proveedor que viene al local no recibe WhatsApp: se esconden los dos botones y se explica.
   // El de «automático» lo pone el escritorio y lo repinta cada pocos segundos: se le deja marcado.
   const auto = document.getElementById('gen-wa-auto');
   if (auto){
-    auto.dataset.bloqueado = (tel && !local) ? '' : '1';
+    auto.dataset.bloqueado = tel ? '' : '1';
     if (auto.dataset.bloqueado) auto.style.display = 'none';
     else if (auto.dataset.visible === '1') auto.style.display = '';
   }
-  btn.style.display = local ? 'none' : '';
+  btn.style.display = '';
   btn.disabled = !tel;
-  if (local){
+  if (tel && local){
     av.style.display = '';
-    av.textContent = _genProv + ' viene al local: no se le manda por WhatsApp. Copia el texto si lo necesitas.';
+    av.textContent = _genProv + ' viene al local. Si hoy no puede venir, mándaselo por WhatsApp.';
   } else if (tel){
     av.style.display = 'none';
   } else {
@@ -3741,6 +3786,14 @@ window.enviarWhatsAppPedido = function(prov, local){
       })
       .withFailureHandler(e => rej(e))
       .encolarWhatsApp(datos);
+  });
+};
+
+window.enviarRevisionWhatsApp = function(prov, local, texto){
+  const ids = lineasDe(APP.borradores, prov, local).map(b => b.ID_Pedido);
+  return new Promise((res, rej) => {
+    google.script.run.withSuccessHandler(res).withFailureHandler(rej)
+      .encolarWhatsApp({ proveedor: prov, local: local, texto: texto, idsPedido: ids, origen: 'revision' });
   });
 };
 
@@ -3905,6 +3958,31 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) waVi
 
 // Proveedor que viene al local: no se le manda nada, el pedido se deja preparado y se queda en Hoy
 // («Listos para pedir») hasta que llega; entonces se confirma con «Confirmar — ya vino el proveedor».
+function revisionTel(){ return (APP.revision || {}).telefono || ''; }
+function revisionNombre(){ return (APP.revision || {}).nombre || 'Mi jefa'; }
+function textoRevision(prov, local, lista){
+  return '📝 Para revisar — ' + prov + ' · ' + local + '\n\n' + textoTarjeta(prov, local, lista);
+}
+// Revisión: solo se manda el texto a la jefa. Nunca cambia estados ni toca APP.borradores.
+function enviarARevision(prov, local, k, btn){
+  if (!revisionTel()) return;
+  guardarNotaPL(prov, local, k).then(() => {
+    if (!lineasDe(APP.borradores, prov, local).length) return;
+    if (!confirm('¿Enviar a ' + revisionNombre() + ' para que lo revise?')) return;
+    if (btn) btn.disabled = true;
+    return Promise.resolve(window.enviarRevisionWhatsApp(prov, local, textoRevision(prov, local, APP.borradores)))
+      .then(() => { showToast('Enviado a ' + revisionNombre() + ' para revisar', 3500); if (btn) btn.disabled = false; });
+  }).catch(e => {
+    if (btn) btn.disabled = false;
+    showToast('No se pudo enviar a la revisión: ' + ((e && e.message) || e || 'error'), 6000);
+  });
+}
+function epRevision(btn){
+  if (!_ep) return;
+  const e = _ep;
+  cerrarModal('modal-enviar-pedido');
+  enviarARevision(e.prov, e.local, e.k, null);
+}
 function vieneAlLocal(prov){
   const p = (APP.proveedores||[]).find(x => x.Nombre === prov);
   return !!p && String(p.Metodo_Pedido||'').toLowerCase().includes('local');
@@ -3942,7 +4020,7 @@ function abrirEnviarPedido(prov, local, k){
     const lin2 = lineasDe(APP.borradores, prov, local);
     if (!lin2.length) return;
     const tel = telefonoDe(prov);
-    _ep = { prov: prov, local: local, tel: tel, ids: lin2.map(b => b.ID_Pedido) };
+    _ep = { prov: prov, local: local, k: k, tel: tel, ids: lin2.map(b => b.ID_Pedido) };
     document.getElementById('ep-titulo').textContent = tel ? 'Enviar pedido' : 'Marcar como pedido';
     document.getElementById('ep-destino').textContent = tel ? prov + ' (' + tel + ') · ' + local : prov + ' · ' + local + ' — sin teléfono: copia el texto y pídelo a mano';
     document.getElementById('ep-texto').value = textoTarjeta(prov, local, APP.borradores);
@@ -3950,6 +4028,9 @@ function abrirEnviarPedido(prov, local, k){
     document.getElementById('ep-ok').disabled = false;
     document.getElementById('ep-prog').style.display = tel ? '' : 'none';
     document.getElementById('ep-copiar').style.display = tel ? 'none' : '';
+    const br = document.getElementById('ep-rev');
+    br.style.display = revisionTel() ? '' : 'none';
+    br.textContent = 'Enviar a ' + revisionNombre() + ' para revisar';
     document.getElementById('modal-enviar-pedido').classList.add('show');
   });
 }
