@@ -1068,6 +1068,10 @@ input[type=checkbox]{width:auto}
     </div>
     <div class="precio-hint" id="mprecio-hint"></div>
     <label class="check-row">
+      <input type="checkbox" id="mprecio-inc" onchange="actualizarPrecioLineaHint()">
+      <span>El precio que he puesto ya lleva el IGIC incluido (como en la factura)</span>
+    </label>
+    <label class="check-row">
       <input type="checkbox" id="mprecio-ficha" checked>
       <span>Guardar también en la ficha del producto, para los próximos pedidos</span>
     </label>
@@ -1806,8 +1810,15 @@ function actualizarTotalesArmar(){
 // Falló, caducó o quedó dudoso: se ve arriba de «Hoy» hasta que se pulsa «Entendido» (se recuerda en este
 // dispositivo). Sale de APP.whatsapp (últimos 2 días), así que se ve igual en el PC, el móvil y la web.
 const WA_FALLOS = { error:'No se pudo enviar', caducado:'No salió a tiempo', revisar:'Revisa el chat, no sé si salió' };
-function waVistos(){ try { return JSON.parse(localStorage.getItem('wa_fallos_vistos') || '[]'); } catch(e){ return []; } }
+// Si el almacenamiento del dispositivo no deja guardar, «Entendido» se recuerda al menos mientras la app siga abierta.
+const _waVistosMem = [];
+function waVistos(){
+  let v = [];
+  try { v = JSON.parse(localStorage.getItem('wa_fallos_vistos') || '[]'); } catch(e){}
+  return v.concat(_waVistosMem);
+}
 function waEntendido(id){
+  _waVistosMem.push(id);
   const v = waVistos(); if (v.indexOf(id) === -1) v.push(id);
   try { localStorage.setItem('wa_fallos_vistos', JSON.stringify(v.slice(-100))); } catch(e){}
   renderHoy();
@@ -2750,13 +2761,17 @@ function addSumEditor(s){
         </div>
       </div>
       <div><label>IGIC</label>
-        <select id="sum-imp-${i}">
+        <select id="sum-imp-${i}" onchange="hintSum(${i})">
           <option value="0">0 % — tipo cero</option><option value="3">3 % — reducido</option>
           <option value="7">7 % — general</option><option value="9.5">9,5 % — incrementado</option>
           <option value="15">15 % — especial</option><option value="20">20 % — tabaco</option>
         </select></div>
     </div>
     <div class="precio-hint" id="sum-hint-${i}"></div>
+    <label class="check-row">
+      <input type="checkbox" id="sum-inc-${i}" onchange="hintSum(${i})">
+      <span>El precio que he puesto ya lleva el IGIC incluido (como en la factura)</span>
+    </label>
     <div class="mb" style="margin-bottom:0">
       <label>Unidad del proveedor <span style="font-weight:400;text-transform:none;color:var(--tx3)">(si la llama distinto)</span></label>
       <input id="sum-uprov-${i}" value="${esc(d.Unidad_Proveedor||'')}" placeholder="Ej: él la vende por cajas de 24" autocomplete="off">
@@ -2774,6 +2789,12 @@ function quitarSumEditor(i, idSum){
 }
 
 // Equivalencia unidad ↔ caja mientras escribes
+// Precio con el IGIC ya incluido (como sale en la factura) → precio base sin IGIC, que es lo que se guarda.
+function precioSinIgic(precio, imp, incluido){
+  if (!incluido || !(imp > 0)) return precio;
+  return Math.round(precio / (1 + imp/100) * 10000) / 10000;
+}
+
 function hintSum(i){
   const el = document.getElementById('sum-hint-'+i);
   if (!el) return;
@@ -2781,10 +2802,13 @@ function hintSum(i){
   const tipo = document.getElementById('sum-tipo-'+i).value;
   const upc = parseInt(document.getElementById('sum-upc-'+i).value)||1;
   if (!v || v <= 0){ el.textContent = ''; el.className = 'precio-hint'; return; }
-  if (upc <= 1){ el.textContent = eur(v)+' por unidad'; el.className = 'precio-hint on'; return; }
+  const imp = parseFloat(document.getElementById('sum-imp-'+i).value)||0;
+  const inc = document.getElementById('sum-inc-'+i).checked && imp > 0;
+  const extra = inc ? ` · sin IGIC: ${eur(precioSinIgic(v, imp, true))}${tipo==='caja'&&upc>1?' la caja':' la unidad'}` : '';
+  if (upc <= 1){ el.textContent = eur(v)+' por unidad'+extra; el.className = 'precio-hint on'; return; }
   const u = tipo === 'caja' ? v/upc : v;
   const c = tipo === 'caja' ? v : v*upc;
-  el.textContent = `${eur(u)} la unidad · ${eur(c)} la caja de ${upc}`;
+  el.textContent = `${eur(u)} la unidad · ${eur(c)} la caja de ${upc}`+extra;
   el.className = 'precio-hint on';
 }
 
@@ -2804,12 +2828,14 @@ function guardarProd(btn){
     const upc = parseInt(document.getElementById('sum-upc-'+i).value)||1;
     const pv = parseFloat(document.getElementById('sum-pre-'+i).value)||0;
     const tipo = document.getElementById('sum-tipo-'+i).value;
+    const impS = parseFloat(document.getElementById('sum-imp-'+i).value)||0;
+    const pvBase = precioSinIgic(pv, impS, document.getElementById('sum-inc-'+i).checked);
     sums.push({
       ID_Suministro: document.getElementById('sum-id-'+i).value || '',
       Proveedor: prov,
       Codigo_Proveedor: document.getElementById('sum-cod-'+i).value.trim(),
       // Siempre se guarda por unidad suelta
-      Precio_Coste: (tipo === 'caja' && upc > 1) ? pv/upc : pv,
+      Precio_Coste: (tipo === 'caja' && upc > 1) ? pvBase/upc : pvBase,
       Impuesto: parseFloat(document.getElementById('sum-imp-'+i).value)||0,
       Unidades_Por_Caja: upc,
       Unidad_Proveedor: document.getElementById('sum-uprov-'+i).value.trim()
@@ -3106,6 +3132,7 @@ function abrirModalPrecio(linea, proveedor){
   const imp = Number(linea.Impuesto_Pct) || (f?Number(f.Impuesto):0) || 7;
   document.getElementById('mprecio-impuesto').value = String(imp);
   document.getElementById('mprecio-ficha').checked = true;
+  document.getElementById('mprecio-inc').checked = false;
   actualizarPrecioLineaHint();
   document.getElementById('modal-precio').classList.add('show');
 }
@@ -3118,7 +3145,9 @@ function actualizarPrecioLineaHint(){
   const cant = parseInt(document.getElementById('mprecio-cant').value)||0;
   const imp = parseFloat(document.getElementById('mprecio-impuesto').value)||0;
   if (!v || v <= 0){ el.textContent = ''; el.className = 'precio-hint'; return; }
-  const u = (tipo==='caja' && upc>1) ? v/upc : v;
+  const inc = document.getElementById('mprecio-inc').checked;
+  const vb = precioSinIgic(v, imp, inc);
+  const u = (tipo==='caja' && upc>1) ? vb/upc : vb;
   const base = u*cant, total = base*(1+imp/100);
   el.innerHTML = `${eur(u)} la unidad · esta línea suma <b>${eur(base)}</b> + IGIC = <b>${eur(total)}</b>`;
   el.className = 'precio-hint on';
@@ -3130,7 +3159,8 @@ function guardarPrecioLinea(btn){
   const upc = parseInt(document.getElementById('mprecio-upc').value)||1;
   const imp = parseFloat(document.getElementById('mprecio-impuesto').value)||0;
   if (v <= 0){ showToast('Pon un precio mayor que cero'); return; }
-  const u = (tipo==='caja' && upc>1) ? v/upc : v;
+  const vb = precioSinIgic(v, imp, document.getElementById('mprecio-inc').checked);
+  const u = (tipo==='caja' && upc>1) ? vb/upc : vb;
   const enFicha = document.getElementById('mprecio-ficha').checked;
 
   btn.disabled = true; btn.textContent = 'Guardando…';
