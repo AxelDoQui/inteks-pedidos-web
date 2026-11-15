@@ -186,6 +186,190 @@ input[type=checkbox]{width:auto}
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#2563eb">
 <link rel="apple-touch-icon" href="icono-192.png">
+<script>
+// Hace que Index.html (el mismo de la web) funcione como PWA en el móvil:
+// google.script.run.<función>(...) → fetch POST al /exec de Apps Script con la clave guardada.
+// Mismo contrato que escritorio/web/shim_escritorio.js. Sin dependencias, ES5.
+(function () {
+  // Las escrituras las rellena el constructor de la PWA (no tocar a mano esta línea).
+  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "importarCatalogo", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos", "encolarWhatsApp", "reclamarWhatsApp", "marcarWhatsApp", "cancelarWhatsApp", "guardarRevisionWhatsApp", "guardarAvisosConfig", "probarAvisoWhatsApp"];
+  var CLAVE = 'inteks_conexion_web';
+  var RE_URL = /^https:\/\/script\.google\.com\/.+\/exec$/;
+
+  // ---- Conexión guardada ----
+  function decodificarCodigo(texto) {
+    var d;
+    try {
+      d = JSON.parse(atob(String(texto).replace(/\s+/g, '')));
+    } catch (e) {
+      throw new Error('Código no válido');
+    }
+    if (!d || typeof d.u !== 'string' || !RE_URL.test(d.u) || typeof d.t !== 'string' || !d.t) {
+      throw new Error('Código no válido');
+    }
+    return { u: d.u, t: d.t };
+  }
+
+  function leerConexion() {
+    try {
+      var c = JSON.parse(localStorage.getItem(CLAVE));
+      if (c && typeof c.u === 'string' && c.u && typeof c.t === 'string' && c.t) return c;
+    } catch (e) { /* sin conexión guardada */ }
+    return null;
+  }
+
+  // ---- Pequeñas ayudas de DOM (estilos en línea) ----
+  function estilo(e, o) { for (var k in o) { if (o.hasOwnProperty(k)) e.style[k] = o[k]; } return e; }
+  function crear(tag, id, o, texto) {
+    var e = document.createElement(tag);
+    if (id) e.id = id;
+    estilo(e, o || {});
+    if (texto) e.textContent = texto;
+    return e;
+  }
+  function cuandoListo(f) {
+    if (document.body) f();
+    else document.addEventListener('DOMContentLoaded', f);
+  }
+
+  // ---- Pantalla de conexión ----
+  var pantalla = null;
+  function construirPantalla() {
+    pantalla = crear('div', 'pantalla-conexion', {
+      display: 'none', position: 'fixed', top: '0', left: '0', right: '0', bottom: '0',
+      zIndex: '100000', background: '#fff', flexDirection: 'column', alignItems: 'stretch',
+      justifyContent: 'center', padding: '24px', boxSizing: 'border-box', fontFamily: 'sans-serif'
+    });
+    pantalla.appendChild(crear('h2', null, { margin: '0 0 8px' }, 'Conectar con InTeks Pedidos'));
+    pantalla.appendChild(crear('p', null, { margin: '0 0 12px', color: '#444' },
+      'Pega aquí el código de conexión que te dieron.'));
+    var area = crear('textarea', 'conexion-codigo', {
+      width: '100%', height: '140px', boxSizing: 'border-box', fontSize: '14px', marginBottom: '12px'
+    });
+    pantalla.appendChild(area);
+    var error = crear('div', 'conexion-error', { color: '#b00020', minHeight: '20px', marginBottom: '12px' });
+    pantalla.appendChild(error);
+    var boton = crear('button', 'btn-conectar', {
+      padding: '14px', fontSize: '16px', border: '0', borderRadius: '8px', background: '#1a73e8', color: '#fff'
+    }, 'Conectar');
+    boton.onclick = conectar;
+    pantalla.appendChild(boton);
+    document.body.appendChild(pantalla);
+  }
+
+  function conectar() {
+    var area = document.getElementById('conexion-codigo');
+    var error = document.getElementById('conexion-error');
+    try {
+      var c = decodificarCodigo(area.value);
+      localStorage.setItem(CLAVE, JSON.stringify({ u: c.u, t: c.t }));
+    } catch (e) {
+      error.textContent = e && e.message ? e.message : 'Código no válido';
+      return;
+    }
+    error.textContent = '';
+    location.reload();
+  }
+
+  function mostrarConexion(aviso) {
+    cuandoListo(function () {
+      if (!pantalla) construirPantalla();
+      document.getElementById('conexion-error').textContent = aviso || '';
+      pantalla.style.display = 'flex';
+    });
+  }
+
+  // ---- Botón fijo «Cambiar conexión» y barra de sin red ----
+  var barra = null;
+  function barraSinRed(visible) {
+    cuandoListo(function () {
+      if (!barra) {
+        if (!visible) return;
+        barra = crear('div', 'barra-sin-red', {
+          display: 'none', position: 'fixed', top: '0', left: '0', right: '0', zIndex: '99999',
+          background: '#b00020', color: '#fff', textAlign: 'center', padding: '6px',
+          fontSize: '13px', fontFamily: 'sans-serif'
+        }, 'Sin conexión: solo lectura');
+        document.body.appendChild(barra);
+      }
+      barra.style.display = visible ? 'block' : 'none';
+    });
+  }
+
+  cuandoListo(function () {
+    var b = crear('button', 'btn-conexion', {
+      position: 'fixed', right: '8px', bottom: '8px', zIndex: '99998', fontSize: '11px',
+      padding: '4px 8px', border: '1px solid #ccc', borderRadius: '6px', background: '#f5f5f5',
+      color: '#555', opacity: '0.8'
+    }, 'Cambiar conexión');
+    b.onclick = function () { mostrarConexion(''); };
+    document.body.appendChild(b);
+    if (!leerConexion()) mostrarConexion('');
+  });
+
+  window.addEventListener('online', function () { barraSinRed(false); });
+  window.addEventListener('offline', function () { barraSinRed(true); });
+
+  // ---- Llamadas ----
+  function esEscritura(fn) { return ESCRITURAS.indexOf(fn) !== -1; }
+  function nuevoIdOp() { return 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
+
+  function llamar(fn, args) {
+    var con = leerConexion();
+    if (!con) return Promise.reject(new Error('Sin conexión configurada'));
+    var escritura = esEscritura(fn);
+    if (escritura && navigator.onLine === false) {
+      return Promise.reject(new Error('Sin conexión: no se puede guardar'));
+    }
+    var cuerpo = { token: con.t, fn: fn, args: args };
+    if (escritura) { cuerpo.idOp = nuevoIdOp(); cuerpo.hora = Date.now(); }
+    return fetch(con.u, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(cuerpo)
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      barraSinRed(false);
+      if (res && res.ok) return res.resultado;
+      if (res && res.codigo === 'TOKEN') mostrarConexion('La clave ya no es válida');
+      throw new Error((res && res.msg) || 'Error desconocido');
+    }, function () {
+      // Fallo de red (fetch o lectura del JSON): solo lectura hasta que vuelva.
+      barraSinRed(true);
+      throw new Error('Sin conexión');
+    });
+  }
+
+  // ---- google.script.run (mismo encadenado que el shim de escritorio) ----
+  function runner(ok, fallo, usuario) {
+    var r = {
+      withSuccessHandler: function (f) { return runner(f, fallo, usuario); },
+      withFailureHandler: function (f) { return runner(ok, f, usuario); },
+      withUserObject: function (o) { return runner(ok, fallo, o); }
+    };
+    return new Proxy(r, {
+      get: function (obj, nombre) {
+        if (nombre in obj) return obj[nombre];
+        if (typeof nombre !== 'string' || nombre === 'then') return undefined;
+        return function () {
+          var args = Array.prototype.slice.call(arguments);
+          llamar(nombre, args).then(function (valor) {
+            if (ok) { try { ok(valor, usuario); } catch (e) { console.error(e); } }
+          }, function (err) {
+            if (fallo) { try { fallo(err, usuario); } catch (e2) { console.error(e2); } }
+            else console.error(err);
+          });
+        };
+      }
+    });
+  }
+
+  window.google = { script: { run: runner(null, null, undefined) } };
+  window.InteksWeb = { decodificarCodigo: decodificarCodigo };
+})();
+
+</script>
+<script>window.VERSION_PWA = "2026.11.15.6";</script>
 </head>
 <body>
 
@@ -913,6 +1097,11 @@ input[type=checkbox]{width:auto}
     </div>
     <button id="api-crear" class="btn btn-primary btn-sm" onclick="crearCodigoApi(this)">Crear código</button>
   </div>
+
+  <div class="card" id="aj-version-card">
+    <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Versión</div>
+    <div id="aj-version" style="font-size:.82rem;color:var(--tx2);line-height:1.6"></div>
+  </div>
 </div>
 
 <!-- MODAL PROGRAMAR WHATSAPP -->
@@ -1145,189 +1334,6 @@ input[type=checkbox]{width:auto}
 <div id="sinc-chip">Actualizando…</div>
 
 <script>
-// Hace que Index.html (el mismo de la web) funcione como PWA en el móvil:
-// google.script.run.<función>(...) → fetch POST al /exec de Apps Script con la clave guardada.
-// Mismo contrato que escritorio/web/shim_escritorio.js. Sin dependencias, ES5.
-(function () {
-  // Las escrituras las rellena el constructor de la PWA (no tocar a mano esta línea).
-  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "importarCatalogo", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos", "encolarWhatsApp", "reclamarWhatsApp", "marcarWhatsApp", "cancelarWhatsApp", "guardarRevisionWhatsApp", "guardarAvisosConfig", "probarAvisoWhatsApp"];
-  var CLAVE = 'inteks_conexion_web';
-  var RE_URL = /^https:\/\/script\.google\.com\/.+\/exec$/;
-
-  // ---- Conexión guardada ----
-  function decodificarCodigo(texto) {
-    var d;
-    try {
-      d = JSON.parse(atob(String(texto).replace(/\s+/g, '')));
-    } catch (e) {
-      throw new Error('Código no válido');
-    }
-    if (!d || typeof d.u !== 'string' || !RE_URL.test(d.u) || typeof d.t !== 'string' || !d.t) {
-      throw new Error('Código no válido');
-    }
-    return { u: d.u, t: d.t };
-  }
-
-  function leerConexion() {
-    try {
-      var c = JSON.parse(localStorage.getItem(CLAVE));
-      if (c && typeof c.u === 'string' && c.u && typeof c.t === 'string' && c.t) return c;
-    } catch (e) { /* sin conexión guardada */ }
-    return null;
-  }
-
-  // ---- Pequeñas ayudas de DOM (estilos en línea) ----
-  function estilo(e, o) { for (var k in o) { if (o.hasOwnProperty(k)) e.style[k] = o[k]; } return e; }
-  function crear(tag, id, o, texto) {
-    var e = document.createElement(tag);
-    if (id) e.id = id;
-    estilo(e, o || {});
-    if (texto) e.textContent = texto;
-    return e;
-  }
-  function cuandoListo(f) {
-    if (document.body) f();
-    else document.addEventListener('DOMContentLoaded', f);
-  }
-
-  // ---- Pantalla de conexión ----
-  var pantalla = null;
-  function construirPantalla() {
-    pantalla = crear('div', 'pantalla-conexion', {
-      display: 'none', position: 'fixed', top: '0', left: '0', right: '0', bottom: '0',
-      zIndex: '100000', background: '#fff', flexDirection: 'column', alignItems: 'stretch',
-      justifyContent: 'center', padding: '24px', boxSizing: 'border-box', fontFamily: 'sans-serif'
-    });
-    pantalla.appendChild(crear('h2', null, { margin: '0 0 8px' }, 'Conectar con InTeks Pedidos'));
-    pantalla.appendChild(crear('p', null, { margin: '0 0 12px', color: '#444' },
-      'Pega aquí el código de conexión que te dieron.'));
-    var area = crear('textarea', 'conexion-codigo', {
-      width: '100%', height: '140px', boxSizing: 'border-box', fontSize: '14px', marginBottom: '12px'
-    });
-    pantalla.appendChild(area);
-    var error = crear('div', 'conexion-error', { color: '#b00020', minHeight: '20px', marginBottom: '12px' });
-    pantalla.appendChild(error);
-    var boton = crear('button', 'btn-conectar', {
-      padding: '14px', fontSize: '16px', border: '0', borderRadius: '8px', background: '#1a73e8', color: '#fff'
-    }, 'Conectar');
-    boton.onclick = conectar;
-    pantalla.appendChild(boton);
-    document.body.appendChild(pantalla);
-  }
-
-  function conectar() {
-    var area = document.getElementById('conexion-codigo');
-    var error = document.getElementById('conexion-error');
-    try {
-      var c = decodificarCodigo(area.value);
-      localStorage.setItem(CLAVE, JSON.stringify({ u: c.u, t: c.t }));
-    } catch (e) {
-      error.textContent = e && e.message ? e.message : 'Código no válido';
-      return;
-    }
-    error.textContent = '';
-    location.reload();
-  }
-
-  function mostrarConexion(aviso) {
-    cuandoListo(function () {
-      if (!pantalla) construirPantalla();
-      document.getElementById('conexion-error').textContent = aviso || '';
-      pantalla.style.display = 'flex';
-    });
-  }
-
-  // ---- Botón fijo «Cambiar conexión» y barra de sin red ----
-  var barra = null;
-  function barraSinRed(visible) {
-    cuandoListo(function () {
-      if (!barra) {
-        if (!visible) return;
-        barra = crear('div', 'barra-sin-red', {
-          display: 'none', position: 'fixed', top: '0', left: '0', right: '0', zIndex: '99999',
-          background: '#b00020', color: '#fff', textAlign: 'center', padding: '6px',
-          fontSize: '13px', fontFamily: 'sans-serif'
-        }, 'Sin conexión: solo lectura');
-        document.body.appendChild(barra);
-      }
-      barra.style.display = visible ? 'block' : 'none';
-    });
-  }
-
-  cuandoListo(function () {
-    var b = crear('button', 'btn-conexion', {
-      position: 'fixed', right: '8px', bottom: '8px', zIndex: '99998', fontSize: '11px',
-      padding: '4px 8px', border: '1px solid #ccc', borderRadius: '6px', background: '#f5f5f5',
-      color: '#555', opacity: '0.8'
-    }, 'Cambiar conexión');
-    b.onclick = function () { mostrarConexion(''); };
-    document.body.appendChild(b);
-    if (!leerConexion()) mostrarConexion('');
-  });
-
-  window.addEventListener('online', function () { barraSinRed(false); });
-  window.addEventListener('offline', function () { barraSinRed(true); });
-
-  // ---- Llamadas ----
-  function esEscritura(fn) { return ESCRITURAS.indexOf(fn) !== -1; }
-  function nuevoIdOp() { return 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
-
-  function llamar(fn, args) {
-    var con = leerConexion();
-    if (!con) return Promise.reject(new Error('Sin conexión configurada'));
-    var escritura = esEscritura(fn);
-    if (escritura && navigator.onLine === false) {
-      return Promise.reject(new Error('Sin conexión: no se puede guardar'));
-    }
-    var cuerpo = { token: con.t, fn: fn, args: args };
-    if (escritura) { cuerpo.idOp = nuevoIdOp(); cuerpo.hora = Date.now(); }
-    return fetch(con.u, {
-      method: 'POST',
-      redirect: 'follow',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(cuerpo)
-    }).then(function (r) { return r.json(); }).then(function (res) {
-      barraSinRed(false);
-      if (res && res.ok) return res.resultado;
-      if (res && res.codigo === 'TOKEN') mostrarConexion('La clave ya no es válida');
-      throw new Error((res && res.msg) || 'Error desconocido');
-    }, function () {
-      // Fallo de red (fetch o lectura del JSON): solo lectura hasta que vuelva.
-      barraSinRed(true);
-      throw new Error('Sin conexión');
-    });
-  }
-
-  // ---- google.script.run (mismo encadenado que el shim de escritorio) ----
-  function runner(ok, fallo, usuario) {
-    var r = {
-      withSuccessHandler: function (f) { return runner(f, fallo, usuario); },
-      withFailureHandler: function (f) { return runner(ok, f, usuario); },
-      withUserObject: function (o) { return runner(ok, fallo, o); }
-    };
-    return new Proxy(r, {
-      get: function (obj, nombre) {
-        if (nombre in obj) return obj[nombre];
-        if (typeof nombre !== 'string' || nombre === 'then') return undefined;
-        return function () {
-          var args = Array.prototype.slice.call(arguments);
-          llamar(nombre, args).then(function (valor) {
-            if (ok) { try { ok(valor, usuario); } catch (e) { console.error(e); } }
-          }, function (err) {
-            if (fallo) { try { fallo(err, usuario); } catch (e2) { console.error(e2); } }
-            else console.error(err);
-          });
-        };
-      }
-    });
-  }
-
-  window.google = { script: { run: runner(null, null, undefined) } };
-  window.InteksWeb = { decodificarCodigo: decodificarCodigo };
-})();
-
-</script>
-<script>
 window.onerror = function(msg, url, linea, col){
   try {
     var ov = document.getElementById('loading-overlay');
@@ -1540,6 +1546,8 @@ function ponerDatos(d){
   APP.whatsapp    = d.whatsapp    || {};
   APP.revision    = d.revision    || { nombre: '', telefono: '' };
   APP.avisosConfig = d.avisosConfig || { canal: 'telegram', telefono: '' };
+  APP.version = d.version || APP.version || '';
+  pintarVersion();
   _ultTg = d.tgConfig || null; _ultArchivo = d.archivo || null;
   pintarEstadoTelegram(d.tgConfig);
   pintarEstadoApi(d.apiConfigurado);
@@ -3585,6 +3593,7 @@ function pintarEstadoTelegram(cfg){
   if (inp && chatId) inp.value = chatId;
   pintarRevisionConfig();
   pintarAvisosConfig();
+  pintarVersion();
   _tgHoras = String((cfg && cfg.horarios) || '07:30,14:10,18:00,21:00')
     .split(',').map(h => h.trim()).filter(String).sort();
   renderHorasTg();
@@ -3599,6 +3608,19 @@ function pintarEstadoTelegram(cfg){
     el.innerHTML = 'Falta '+f.join(' y ');
   }
 }
+
+// La versión que está corriendo: la app de escritorio la pone ella (window.VERSION_APP_ESCRITORIO), la del móvil se
+// graba al construirla (window.VERSION_PWA) y la web usa la del script de Google (APP.version).
+function pintarVersion(){
+  const el = document.getElementById('aj-version'); if (!el) return;
+  const esc_ = window.VERSION_APP_ESCRITORIO, pwa = window.VERSION_PWA, srv = APP.version || '';
+  const l = [];
+  if (esc_) l.push('App de escritorio: <b>' + esc(esc_) + '</b>');
+  else if (pwa) l.push('App del móvil: <b>' + esc(pwa) + '</b>');
+  if (srv) l.push((esc_ || pwa ? 'Servidor (Google): ' : 'Versión: ') + '<b>' + esc(srv) + '</b>');
+  el.innerHTML = l.join('<br>') || 'Sin datos todavía';
+}
+window.pintarVersion = pintarVersion;
 
 function pintarRevisionConfig(){
   const n = document.getElementById('aj-rev-nombre'), t = document.getElementById('aj-rev-tel');
