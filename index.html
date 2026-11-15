@@ -153,6 +153,11 @@ input[type=checkbox]{width:auto}
 .hist-undo:disabled{opacity:.5;cursor:default}
 .modal-drag{display:block;width:38px;height:4px;background:var(--br);border-radius:99px;margin:0 auto 14px}
 .modal-title{font-size:1.05rem;font-weight:700;margin-bottom:16px}
+.imp-fila{display:flex;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--br);padding:8px 0;font-size:.82rem}
+.imp-fila .imp-n{flex:1;min-width:0}.imp-fila .imp-n span{display:block;color:var(--tx3);font-size:.72rem}
+.imp-fila select{max-width:48%;font-size:.78rem}
+.imp-lista{max-height:46vh;overflow:auto;margin:10px 0}
+.imp-resumen{font-size:.8rem;color:var(--tx2);margin:8px 0}
 .modal-footer{display:flex;gap:9px;margin-top:18px}
 .modal-footer .btn{flex:1}
 
@@ -741,7 +746,10 @@ input[type=checkbox]{width:auto}
 <div class="sec" id="sec-catalogo">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
     <div class="sec-title" style="margin:0">Catálogo</div>
-    <button class="btn btn-primary btn-sm" onclick="abrirModalProd()">+ Nuevo</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline btn-sm" onclick="abrirImportarCatalogo()" title="Meter el catálogo de un proveedor">Importar catálogo</button>
+      <button class="btn btn-primary btn-sm" onclick="abrirModalProd()">+ Nuevo</button>
+    </div>
   </div>
   <div class="search-box">
     <span class="search-ico">🔍</span>
@@ -979,6 +987,28 @@ input[type=checkbox]{width:auto}
   </div>
 </div>
 
+<!-- MODAL IMPORTAR CATÁLOGO -->
+<div class="overlay" id="modal-importar">
+  <div class="modal" style="max-width:640px">
+    <span class="modal-drag"></span>
+    <div class="modal-title">Importar catálogo de un proveedor</div>
+    <div class="mb"><label>Proveedor</label>
+      <input id="imp-prov" list="imp-provs" placeholder="Ej: Intertropico" autocomplete="off">
+      <datalist id="imp-provs"></datalist></div>
+    <div class="mb"><label>Archivo del catálogo (.csv)</label>
+      <input type="file" id="imp-archivo" accept=".csv,text/csv,text/plain" onchange="impLeerArchivo(this)"></div>
+    <div id="imp-paso2" style="display:none">
+      <div class="imp-resumen" id="imp-resumen"></div>
+      <div class="filtros-row" id="imp-filtros"></div>
+      <div class="imp-lista" id="imp-lista"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-importar')">Cerrar</button>
+      <button class="btn btn-primary" id="imp-ok" onclick="impConfirmar(this)" disabled>Importar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL PRODUCTO (con varios proveedores) -->
 <div class="overlay" id="modal-prod">
   <div class="modal">
@@ -1120,7 +1150,7 @@ input[type=checkbox]{width:auto}
 // Mismo contrato que escritorio/web/shim_escritorio.js. Sin dependencias, ES5.
 (function () {
   // Las escrituras las rellena el constructor de la PWA (no tocar a mano esta línea).
-  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos", "encolarWhatsApp", "reclamarWhatsApp", "marcarWhatsApp", "cancelarWhatsApp", "guardarRevisionWhatsApp", "guardarAvisosConfig", "probarAvisoWhatsApp"];
+  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "importarCatalogo", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos", "encolarWhatsApp", "reclamarWhatsApp", "marcarWhatsApp", "cancelarWhatsApp", "guardarRevisionWhatsApp", "guardarAvisosConfig", "probarAvisoWhatsApp"];
   var CLAVE = 'inteks_conexion_web';
   var RE_URL = /^https:\/\/script\.google\.com\/.+\/exec$/;
 
@@ -2707,6 +2737,150 @@ function elimProd(id, btn){
 }
 
 // ── Modal de producto: el nombre una vez, los proveedores los que hagan falta ──
+// ════════════════════════════════════════════════════════════
+// IMPORTAR EL CATÁLOGO DE UN PROVEEDOR
+// ════════════════════════════════════════════════════════════
+const IMP_PARASITAS = ['de','la','el','los','las','con','y','en','del','al','a','un','una','sin'];
+function impPesos(t){
+  const out = [];
+  String(t||'').toLowerCase().replace(/(\d+(?:[.,]\d+)?)\s*(kg|g|gr|ml|cl|l|lt|lts)\b/g, (m, n, u) => {
+    let v = parseFloat(n.replace(',', '.'));
+    if (u === 'kg' || u === 'l' || u === 'lt' || u === 'lts') v *= 1000; else if (u === 'cl') v *= 10;
+    out.push(Math.round(v)); return m;
+  });
+  return out.sort((a, b) => a - b).join(',');
+}
+function impTokens(t){
+  const limpio = String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\d+(?:[.,]\d+)?\s*(kg|g|gr|ml|cl|l|lt|lts|und|uds|unidades)\b/g, ' ')
+    .replace(/[^a-z0-9ñ ]+/g, ' ');
+  return limpio.split(/\s+/).filter(x => x.length > 1 && IMP_PARASITAS.indexOf(x) === -1);
+}
+function impPuntuar(a, b){
+  const ta = new Set(impTokens(a)), tb = new Set(impTokens(b));
+  if (!ta.size || !tb.size) return 0;
+  let comun = 0; ta.forEach(x => { if (tb.has(x)) comun++; });
+  let sc = comun / (ta.size + tb.size - comun);
+  const pa = impPesos(a), pb = impPesos(b);
+  if (pa && pb && pa !== pb) sc = Math.min(sc, 0.7);       // distinto gramaje: nunca «seguro»
+  return Math.round(sc * 100) / 100;
+}
+// Lee el CSV del catálogo (; o ,) → [{codigo, nombre, unidades}]
+function impParseCsv(texto){
+  const t = String(texto||'').replace(/^﻿/, '');
+  const l1 = t.split('\n')[0];
+  const sep = (l1.split(';').length >= l1.split(',').length) ? ';' : ',';
+  const filas = []; let f = [], c = '', q = false;
+  for (let i = 0; i < t.length; i++){
+    const ch = t[i];
+    if (q){ if (ch === '"'){ if (t[i+1] === '"'){ c += '"'; i++; } else q = false; } else c += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === sep){ f.push(c); c = ''; }
+    else if (ch === '\n' || ch === '\r'){
+      if (ch === '\r' && t[i+1] === '\n') i++;
+      f.push(c); c = ''; if (f.some(x => x.trim())) filas.push(f); f = [];
+    }
+    else c += ch;
+  }
+  f.push(c); if (f.some(x => x.trim())) filas.push(f);
+  if (!filas.length) return [];
+  const cab = filas[0].map(x => x.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''));
+  const col = (...ns) => { for (const n of ns){ const i = cab.findIndex(x => x.indexOf(n) === 0); if (i !== -1) return i; } return -1; };
+  const iC = col('ref', 'cod'), iN = col('nombre', 'producto', 'descrip'), iU = col('unidades', 'uds', 'caja');
+  if (iN === -1) return [];
+  return filas.slice(1).map(r => ({
+    codigo: iC === -1 ? '' : String(r[iC]||'').trim(),
+    nombre: String(r[iN]||'').trim(),
+    unidades: Math.max(1, parseInt(iU === -1 ? 1 : r[iU], 10) || 1)
+  })).filter(x => x.nombre);
+}
+// Propone con qué producto de la app coincide cada uno del catálogo
+function impEmparejar(items, catalogo, proveedor){
+  const dn = x => String(x||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  return items.map(it => {
+    const cands = (catalogo||[]).map(p => ({ id: p.ID_Producto, nombre: p.Nombre_Producto,
+        score: dn(p.Nombre_Producto) === dn(it.nombre) ? 1 : impPuntuar(it.nombre, p.Nombre_Producto), p }))
+      .filter(c => c.score >= 0.3).sort((a, b) => b.score - a.score).slice(0, 5);
+    const top = cands[0];
+    let estado = 'nuevo', accion = 'nuevo', id = '';
+    if (top && top.score >= 0.85){ estado = 'seguro'; accion = 'unir'; id = top.id; }
+    else if (top && top.score >= 0.5){ estado = 'revisar'; if (top.score >= 0.65){ accion = 'unir'; id = top.id; } }
+    if (top && (top.p.suministros||[]).some(s => dn(s.Proveedor) === dn(proveedor) && s.Codigo_Proveedor && s.Codigo_Proveedor === it.codigo)){
+      estado = 'ya'; accion = 'unir'; id = top.id;
+    }
+    return Object.assign({}, it, { cands: cands.map(c => ({ id: c.id, nombre: c.nombre, score: c.score })), estado, accion, idProducto: id });
+  });
+}
+
+let _imp = { filas: [], filtro: 'revisar' };
+function abrirImportarCatalogo(){
+  document.getElementById('imp-prov').value = '';
+  document.getElementById('imp-archivo').value = '';
+  document.getElementById('imp-provs').innerHTML = (APP.proveedores||[]).map(p => `<option value="${esc(p.Nombre)}">`).join('');
+  document.getElementById('imp-paso2').style.display = 'none';
+  document.getElementById('imp-ok').disabled = true;
+  _imp = { filas: [], filtro: 'revisar' };
+  document.getElementById('modal-importar').classList.add('show');
+}
+function impLeerArchivo(inp){
+  const f = inp.files && inp.files[0]; if (!f) return;
+  const pv = document.getElementById('imp-prov');
+  if (!pv.value.trim()) pv.value = f.name.replace(/\.[^.]+$/, '');
+  const lector = new FileReader();
+  lector.onload = () => {
+    const items = impParseCsv(String(lector.result||''));
+    if (!items.length){ showToast('No encuentro productos en ese archivo (¿es el .csv del catálogo?)', 4000); return; }
+    _imp.filas = impEmparejar(items, APP.catalogo, pv.value.trim());
+    _imp.filtro = _imp.filas.some(x => x.estado === 'revisar') ? 'revisar' : 'todos';
+    document.getElementById('imp-paso2').style.display = '';
+    impPintar();
+  };
+  lector.readAsText(f, 'utf-8');
+}
+function impPintar(){
+  const F = _imp.filas, n = e => F.filter(x => x.estado === e).length;
+  const ver = x => _imp.filtro === 'todos' || x.estado === _imp.filtro;
+  const filtros = [['revisar','Revisar'],['seguro','Coinciden'],['ya','Ya cargados'],['nuevo','Nuevos'],['todos','Todos']];
+  document.getElementById('imp-filtros').innerHTML = filtros.map(([k, t]) =>
+    `<button class="filtro-btn${_imp.filtro===k?' on':''}" onclick="impFiltrar('${k}')">${t} (${k==='todos'?F.length:n(k)})</button>`).join('');
+  document.getElementById('imp-lista').innerHTML = F.map((x, i) => !ver(x) ? '' : `<div class="imp-fila">
+    <div class="imp-n"><b>${esc(x.nombre)}</b><span>${esc(x.codigo)} · caja de ${x.unidades}</span></div>
+    <select onchange="impElegir(${i}, this.value)">
+      <option value="nuevo"${x.accion==='nuevo'?' selected':''}>➕ Crear producto nuevo</option>
+      ${x.cands.map(c => `<option value="u:${esc(c.id)}"${x.accion==='unir'&&x.idProducto===c.id?' selected':''}>🔗 Unir con: ${esc(c.nombre)} (${Math.round(c.score*100)} %)</option>`).join('')}
+      <option value="saltar"${x.accion==='saltar'?' selected':''}>⏭ No importar</option>
+    </select></div>`).join('');
+  const hacen = F.filter(x => x.accion !== 'saltar').length;
+  document.getElementById('imp-resumen').textContent =
+    `${F.length} productos en el archivo · ${F.filter(x=>x.accion==='unir').length} se unen a uno que ya tienes · ${F.filter(x=>x.accion==='nuevo').length} se crean nuevos · ${F.filter(x=>x.accion==='saltar').length} se saltan`;
+  const ok = document.getElementById('imp-ok'); ok.disabled = !hacen; ok.textContent = hacen ? `Importar ${hacen}` : 'Importar';
+}
+function impFiltrar(k){ _imp.filtro = k; impPintar(); }
+function impElegir(i, v){
+  const x = _imp.filas[i];
+  if (v === 'nuevo'){ x.accion = 'nuevo'; x.idProducto = ''; }
+  else if (v === 'saltar'){ x.accion = 'saltar'; x.idProducto = ''; }
+  else { x.accion = 'unir'; x.idProducto = v.slice(2); }
+  impPintar();
+}
+function impConfirmar(btn){
+  const prov = document.getElementById('imp-prov').value.trim();
+  if (!prov){ showToast('Falta el proveedor'); return; }
+  const items = _imp.filas.filter(x => x.accion !== 'saltar')
+    .map(x => ({ codigo: x.codigo, nombre: x.nombre, unidades: x.unidades, accion: x.accion, idProducto: x.idProducto }));
+  if (!items.length) return;
+  btn.disabled = true; btn.textContent = 'Importando…';
+  google.script.run
+    .withSuccessHandler(r => {
+      if (!r || !r.ok){ btn.disabled = false; btn.textContent = 'Importar'; showToast('Error: '+((r&&r.msg)||'no se pudo importar'), 4000); return; }
+      cerrarModal('modal-importar');
+      showToast(`Importado en ${r.proveedor}: ${r.creados} nuevos, ${r.unidos} unidos, ${r.actualizados} actualizados`, 6000);
+      recargarDatos();
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent = 'Importar'; showToast('Error: '+e.message, 4000); })
+    .importarCatalogo(prov, items);
+}
+
 function abrirModalProd(p){
   _sumSeq = 0; _sumQuitar = [];
   document.getElementById('mprod-titulo').textContent = p ? 'Editar producto' : 'Nuevo producto';
