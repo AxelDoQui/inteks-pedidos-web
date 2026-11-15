@@ -854,6 +854,30 @@ input[type=checkbox]{width:auto}
   </div>
 
   <div class="card">
+    <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Avisos por WhatsApp</div>
+    <div style="font-size:.78rem;color:var(--tx2);margin-bottom:12px">Elige por dónde recibes los avisos de pedidos y recordatorios.</div>
+    <div class="mb">
+      <label>Canal</label>
+      <select id="aj-avisos-canal" onchange="pintarAvisosAyuda()">
+        <option value="telegram">Solo Telegram</option>
+        <option value="whatsapp">Solo WhatsApp</option>
+        <option value="ambos">Telegram y WhatsApp</option>
+      </select>
+    </div>
+    <div class="mb">
+      <label>Tu teléfono (WhatsApp)</label>
+      <input type="tel" id="aj-avisos-tel" placeholder="Ej: 34600000001" autocomplete="off">
+    </div>
+    <div id="aj-avisos-ayuda" style="display:none;font-size:.72rem;color:var(--tx3);margin-bottom:10px;line-height:1.45">
+      Los avisos por WhatsApp salen desde el PC con OpenWA encendido y “enviar pendientes” activado. Si no salen a tiempo, se mandan por Telegram.
+    </div>
+    <div class="tg-btn-row">
+      <button class="btn btn-primary btn-sm" onclick="guardarAvisosConfigUI()">Guardar</button>
+      <button class="btn btn-outline btn-sm" onclick="probarAvisoWhatsApp()">Probar WhatsApp</button>
+    </div>
+  </div>
+
+  <div class="card">
     <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Revisión de mi jefa</div>
     <div style="font-size:.78rem;color:var(--tx2);margin-bottom:12px">Con un número guardado aparece «Enviar a mi jefa para revisar» en los pedidos. Solo se le manda el texto: nada se marca como pedido.</div>
     <div class="mb">
@@ -1092,7 +1116,7 @@ input[type=checkbox]{width:auto}
 // Mismo contrato que escritorio/web/shim_escritorio.js. Sin dependencias, ES5.
 (function () {
   // Las escrituras las rellena el constructor de la PWA (no tocar a mano esta línea).
-  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos", "encolarWhatsApp", "reclamarWhatsApp", "marcarWhatsApp", "cancelarWhatsApp", "guardarRevisionWhatsApp"];
+  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos", "encolarWhatsApp", "reclamarWhatsApp", "marcarWhatsApp", "cancelarWhatsApp", "guardarRevisionWhatsApp", "guardarAvisosConfig", "probarAvisoWhatsApp"];
   var CLAVE = 'inteks_conexion_web';
   var RE_URL = /^https:\/\/script\.google\.com\/.+\/exec$/;
 
@@ -1367,9 +1391,9 @@ function arrancarApp(){
         _deCache = false;
         if (_vigilante){ clearTimeout(_vigilante); _vigilante = null; }
         // 'whatsapp' y 'revision' pueden faltar (copia antigua o servidor sin ellas): cuentan como vacías
-        const val = (o, k) => (o[k] === undefined && k === 'whatsapp') ? {} : (o[k] === undefined && k === 'revision') ? { nombre: '', telefono: '' } : o[k];
+        const val = (o, k) => (o[k] === undefined && k === 'whatsapp') ? {} : (o[k] === undefined && k === 'revision') ? { nombre: '', telefono: '' } : (o[k] === undefined && k === 'avisosConfig') ? { canal: 'telegram', telefono: '' } : o[k];
         const igual = k => JSON.stringify(val(d, k)) === JSON.stringify(val(previo.d, k));
-        const fijo = ['proveedores','catalogo','avisos','locales','tgConfig','archivo','revision'].every(igual);
+        const fijo = ['proveedores','catalogo','avisos','locales','tgConfig','archivo','revision','avisosConfig'].every(igual);
         const movil = ['borradores','listos','skips','whatsapp'].every(igual);
         if (fijo && movil) return;                      // nada nuevo
         if (fijo){                                      // solo se movieron pedidos
@@ -1405,7 +1429,7 @@ function guardarCache(){
     localStorage.setItem(CLAVE_CACHE, JSON.stringify({ t: Date.now(), d: {
       proveedores: APP.proveedores, catalogo: APP.catalogo, borradores: APP.borradores,
       listos: APP.listos, avisos: APP.avisos, skips: APP.skips, locales: APP.locales,
-      tgConfig: _ultTg, archivo: _ultArchivo, whatsapp: APP.whatsapp || {}, revision: APP.revision } }));
+      tgConfig: _ultTg, archivo: _ultArchivo, whatsapp: APP.whatsapp || {}, revision: APP.revision, avisosConfig: APP.avisosConfig } }));
   } catch(e){}
 }
 
@@ -1481,6 +1505,7 @@ function ponerDatos(d){
   APP.locales     = d.locales     || [];
   APP.whatsapp    = d.whatsapp    || {};
   APP.revision    = d.revision    || { nombre: '', telefono: '' };
+  APP.avisosConfig = d.avisosConfig || { canal: 'telegram', telefono: '' };
   _ultTg = d.tgConfig || null; _ultArchivo = d.archivo || null;
   pintarEstadoTelegram(d.tgConfig);
   pintarEstadoApi(d.apiConfigurado);
@@ -3355,6 +3380,7 @@ function pintarEstadoTelegram(cfg){
   const inp = document.getElementById('aj-tg-chatid');
   if (inp && chatId) inp.value = chatId;
   pintarRevisionConfig();
+  pintarAvisosConfig();
   _tgHoras = String((cfg && cfg.horarios) || '07:30,14:10,18:00,21:00')
     .split(',').map(h => h.trim()).filter(String).sort();
   renderHorasTg();
@@ -3374,6 +3400,31 @@ function pintarRevisionConfig(){
   const n = document.getElementById('aj-rev-nombre'), t = document.getElementById('aj-rev-tel');
   if (n) n.value = (APP.revision && APP.revision.telefono) ? (APP.revision.nombre || '') : '';
   if (t) t.value = (APP.revision && APP.revision.telefono) || '';
+}
+function pintarAvisosConfig(){
+  const c = document.getElementById('aj-avisos-canal'), t = document.getElementById('aj-avisos-tel');
+  const a = APP.avisosConfig || { canal: 'telegram', telefono: '' };
+  if (c) c.value = a.canal || 'telegram';
+  if (t) t.value = a.telefono || '';
+  pintarAvisosAyuda();
+}
+function pintarAvisosAyuda(){
+  const c = document.getElementById('aj-avisos-canal'), h = document.getElementById('aj-avisos-ayuda');
+  if (h) h.style.display = (c && c.value !== 'telegram') ? 'block' : 'none';
+}
+function guardarAvisosConfigUI(){
+  const canal = document.getElementById('aj-avisos-canal').value;
+  const telefono = document.getElementById('aj-avisos-tel').value.trim();
+  google.script.run
+    .withSuccessHandler(() => { showToast('Guardado'); recargarDatos(); })
+    .withFailureHandler(e => showToast('Error: ' + ((e && e.message) || e)))
+    .guardarAvisosConfig({ canal: canal, telefono: telefono });
+}
+function probarAvisoWhatsApp(){
+  google.script.run
+    .withSuccessHandler(() => showToast('Aviso de prueba en la cola — sale desde el PC con OpenWA', 4000))
+    .withFailureHandler(e => showToast('Error: ' + ((e && e.message) || e), 4000))
+    .probarAvisoWhatsApp();
 }
 function _guardarRevision(nombre, telefono){
   google.script.run
