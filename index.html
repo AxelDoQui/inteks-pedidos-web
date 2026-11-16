@@ -158,6 +158,8 @@ input[type=checkbox]{width:auto}
 .imp-fila select{max-width:48%;font-size:.78rem}
 .imp-lista{max-height:46vh;overflow:auto;margin:10px 0}
 .imp-resumen{font-size:.8rem;color:var(--tx2);margin:8px 0}
+.sumed-hija{margin-left:14px;border-left:3px solid var(--bl-mid)}
+.sumed-hija .h-prov,.sumed-hija .h-cod,.sumed-hija .h-imp{display:none}
 .sum-otra{background:none;border:0;color:var(--bl);font-size:.74rem;font-weight:600;cursor:pointer;margin-left:auto;padding:2px 4px}
 .modal-footer{display:flex;gap:9px;margin-top:18px}
 .modal-footer .btn{flex:1}
@@ -370,7 +372,7 @@ input[type=checkbox]{width:auto}
 })();
 
 </script>
-<script>window.VERSION_PWA = "2026.11.16.1";</script>
+<script>window.VERSION_PWA = "2026.11.16.2";</script>
 </head>
 <body>
 
@@ -2928,8 +2930,11 @@ function abrirModalProd(p){
   document.getElementById('mprod-sums').innerHTML = '';
 
   const sums = (p && p.suministros) ? p.suministros : [];
-  if (sums.length) sums.forEach(s => addSumEditor(s));
-  else {
+  if (sums.length){
+    const orden = [], porProv = {};
+    sums.forEach(x => { const k = String(x.Proveedor||'').toLowerCase(); if (!porProv[k]){ porProv[k] = []; orden.push(k); } porProv[k].push(x); });
+    orden.forEach(k => { const idx = _sumSeq; porProv[k].forEach((x, j) => j === 0 ? addSumEditor(x) : addSumEditor(x, idx)); });
+  } else {
     // Si venimos de Anotar con un proveedor ya elegido, se precarga
     const prov = document.getElementById('a-prov')?.value || '';
     addSumEditor(prov ? { Proveedor:prov } : null);
@@ -2937,27 +2942,29 @@ function abrirModalProd(p){
   document.getElementById('modal-prod').classList.add('show');
 }
 
-function addSumEditor(s){
+function addSumEditor(s, padre){
   const i = _sumSeq++;
   const d = s || {};
+  const hija = padre !== undefined && padre !== null && padre >= 0;
   const opts = (APP.proveedores||[]).map(p =>
     `<option value="${esc(p.Nombre)}"${d.Proveedor===p.Nombre?' selected':''}>${esc(p.Nombre)}</option>`).join('');
   const div = document.createElement('div');
-  div.className = 'sumed';
+  div.className = 'sumed' + (hija ? ' sumed-hija' : '');
   div.id = 'sumed-'+i;
   div.innerHTML = `
     <div class="sumed-head">
-      <span class="sumed-tit">Proveedor ${i+1}</span>
-      <button class="sum-otra" type="button" onclick="otraPresentacion(${i})" title="El mismo proveedor lo vende también en otra presentación (Display, Caja…)">+ otra presentación</button>
+      <span class="sumed-tit">${hija ? 'Otra presentación del mismo proveedor' : 'Proveedor'}</span>
+      ${hija ? '' : `<button class="sum-otra" type="button" onclick="otraPresentacion(${i})" title="Este proveedor lo vende también en otra presentación (Display, Caja…)">+ presentación</button>`}
       <button class="sumed-x" onclick="quitarSumEditor(${i},'${js(d.ID_Suministro||'')}')">×</button>
     </div>
     <input type="hidden" id="sum-id-${i}" value="${esc(d.ID_Suministro||'')}">
-    <div class="mb">
+    <input type="hidden" id="sum-padre-${i}" value="${hija ? padre : -1}">
+    <div class="mb h-prov">
       <label>Proveedor</label>
       <select id="sum-prov-${i}"><option value="">— Selecciona —</option>${opts}</select>
     </div>
     <div class="fila">
-      <div><label>Código del proveedor</label>
+      <div class="h-cod"><label>Código del proveedor</label>
         <input id="sum-cod-${i}" value="${esc(d.Codigo_Proveedor||'')}" placeholder="Ej: CLP-4471" autocomplete="off"></div>
       <div><label>Unidades por caja</label>
         <input type="number" id="sum-upc-${i}" min="1" value="${Number(d.Unidades_Por_Caja)||1}" onchange="hintSum(${i})"></div>
@@ -2972,8 +2979,8 @@ function addSumEditor(s){
           </select>
         </div>
       </div>
-      <div><label>IGIC</label>
-        <select id="sum-imp-${i}" onchange="hintSum(${i})">
+      <div class="h-imp"><label>IGIC</label>
+        <select id="sum-imp-${i}" onchange="hintTodas(${i})">
           <option value="0">0 % — tipo cero</option><option value="3">3 % — reducido</option>
           <option value="7">7 % — general</option><option value="9.5">9,5 % — incrementado</option>
           <option value="15">15 % — especial</option><option value="20">20 % — tabaco</option>
@@ -2988,7 +2995,13 @@ function addSumEditor(s){
       <label>Unidad del proveedor <span style="font-weight:400;text-transform:none;color:var(--tx3)">(si la llama distinto)</span></label>
       <input id="sum-uprov-${i}" value="${esc(d.Unidad_Proveedor||'')}" placeholder="Ej: Display, Caja de 2 displays…" autocomplete="off">
     </div>`;
-  document.getElementById('mprod-sums').appendChild(div);
+  // Las otras presentaciones van pegadas a la tarjeta de su proveedor
+  const cont = document.getElementById('mprod-sums');
+  if (hija){
+    let ref = document.getElementById('sumed-'+padre);
+    while (ref && ref.nextElementSibling && ref.nextElementSibling.classList.contains('sumed-hija')) ref = ref.nextElementSibling;
+    if (ref) ref.after(div); else cont.appendChild(div);
+  } else cont.appendChild(div);
   const imp = document.getElementById('sum-imp-'+i);
   imp.value = (d.Impuesto !== undefined && d.Impuesto !== '') ? String(Number(d.Impuesto)) : '7';
   hintSum(i);
@@ -2996,14 +3009,30 @@ function addSumEditor(s){
 
 // Añade otra fila del MISMO proveedor (código, IGIC y nombre de la unidad copiados) para otra presentación
 function otraPresentacion(i){
+  i = _padreDe(i);
   const g = id => { const e = document.getElementById(id+i); return e ? e.value : ''; };
   addSumEditor({ Proveedor: g('sum-prov-'), Codigo_Proveedor: g('sum-cod-'),
-                 Impuesto: parseFloat(g('sum-imp-')) || 0, Unidades_Por_Caja: 1, Unidad_Proveedor: '' });
+                 Impuesto: parseFloat(g('sum-imp-')) || 0, Unidades_Por_Caja: 1, Unidad_Proveedor: '' }, i);
   const n = _sumSeq - 1, c = document.getElementById('sum-upc-'+n);
   if (c){ c.focus(); c.select(); }
 }
+// Índice de la tarjeta del proveedor a la que pertenece la fila i (ella misma si lo es)
+function _padreDe(i){
+  const e = document.getElementById('sum-padre-'+i);
+  const p = e ? parseInt(e.value, 10) : -1;
+  return p >= 0 ? p : i;
+}
 function quitarSumEditor(i, idSum){
   const d = document.getElementById('sumed-'+i);
+  if (d && !d.classList.contains('sumed-hija')){
+    // al quitar el proveedor se quitan también sus otras presentaciones
+    for (let j = 0; j < _sumSeq; j++){
+      if (j === i || !document.getElementById('sumed-'+j) || _padreDe(j) !== i) continue;
+      const idj = document.getElementById('sum-id-'+j).value;
+      if (idj) _sumQuitar.push(idj);
+      document.getElementById('sumed-'+j).remove();
+    }
+  }
   if (d) d.remove();
   if (idSum) _sumQuitar.push(idSum);   // se borra de la hoja al guardar
 }
@@ -3015,6 +3044,9 @@ function precioSinIgic(precio, imp, incluido){
   return Math.round(precio / (1 + imp/100) * 10000) / 10000;
 }
 
+function hintTodas(i){
+  for (let j = 0; j < _sumSeq; j++) if (document.getElementById('sumed-'+j) && _padreDe(j) === _padreDe(i)) hintSum(j);
+}
 function hintSum(i){
   const el = document.getElementById('sum-hint-'+i);
   if (!el) return;
@@ -3022,7 +3054,7 @@ function hintSum(i){
   const tipo = document.getElementById('sum-tipo-'+i).value;
   const upc = parseInt(document.getElementById('sum-upc-'+i).value)||1;
   if (!v || v <= 0){ el.textContent = ''; el.className = 'precio-hint'; return; }
-  const imp = parseFloat(document.getElementById('sum-imp-'+i).value)||0;
+  const imp = parseFloat(document.getElementById('sum-imp-'+_padreDe(i)).value)||0;
   const inc = document.getElementById('sum-inc-'+i).checked && imp > 0;
   const extra = inc ? ` · sin IGIC: ${eur(precioSinIgic(v, imp, true))}${tipo==='caja'&&upc>1?' la caja':' la unidad'}` : '';
   if (upc <= 1){ el.textContent = eur(v)+' por unidad'+extra; el.className = 'precio-hint on'; return; }
@@ -3039,8 +3071,10 @@ function guardarProd(btn){
   const sums = [];
   const vistos = {};
   for (let i = 0; i < _sumSeq; i++){
-    const sel = document.getElementById('sum-prov-'+i);
-    if (!sel) continue;                       // se quitó
+    if (!document.getElementById('sumed-'+i)) continue;      // se quitó
+    const P = _padreDe(i);                                   // tarjeta de su proveedor
+    const sel = document.getElementById('sum-prov-'+P);
+    if (!sel) continue;
     const prov = sel.value.trim();
     if (!prov) continue;
     const upc = parseInt(document.getElementById('sum-upc-'+i).value)||1;
@@ -3049,15 +3083,15 @@ function guardarProd(btn){
     vistos[clave] = 1;
     const pv = parseFloat(document.getElementById('sum-pre-'+i).value)||0;
     const tipo = document.getElementById('sum-tipo-'+i).value;
-    const impS = parseFloat(document.getElementById('sum-imp-'+i).value)||0;
+    const impS = parseFloat(document.getElementById('sum-imp-'+P).value)||0;
     const pvBase = precioSinIgic(pv, impS, document.getElementById('sum-inc-'+i).checked);
     sums.push({
       ID_Suministro: document.getElementById('sum-id-'+i).value || '',
       Proveedor: prov,
-      Codigo_Proveedor: document.getElementById('sum-cod-'+i).value.trim(),
+      Codigo_Proveedor: document.getElementById('sum-cod-'+P).value.trim(),
       // Siempre se guarda por unidad suelta
       Precio_Coste: (tipo === 'caja' && upc > 1) ? pvBase/upc : pvBase,
-      Impuesto: parseFloat(document.getElementById('sum-imp-'+i).value)||0,
+      Impuesto: impS,
       Unidades_Por_Caja: upc,
       Unidad_Proveedor: document.getElementById('sum-uprov-'+i).value.trim()
     });
