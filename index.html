@@ -158,6 +158,7 @@ input[type=checkbox]{width:auto}
 .imp-fila select{max-width:48%;font-size:.78rem}
 .imp-lista{max-height:46vh;overflow:auto;margin:10px 0}
 .imp-resumen{font-size:.8rem;color:var(--tx2);margin:8px 0}
+.sum-otra{background:none;border:0;color:var(--bl);font-size:.74rem;font-weight:600;cursor:pointer;margin-left:auto;padding:2px 4px}
 .modal-footer{display:flex;gap:9px;margin-top:18px}
 .modal-footer .btn{flex:1}
 
@@ -369,7 +370,7 @@ input[type=checkbox]{width:auto}
 })();
 
 </script>
-<script>window.VERSION_PWA = "2026.11.15.6";</script>
+<script>window.VERSION_PWA = "2026.11.16.1";</script>
 </head>
 <body>
 
@@ -1683,6 +1684,39 @@ function getUPC(prod, prov){
   const f = fichaDe(prod, prov);
   return f ? (Number(f.Unidades_Por_Caja)||1) : 1;
 }
+// Un proveedor puede vender el mismo producto en varias presentaciones (Display de 12, Caja de 24…):
+// cada una es una fila de Suministros con sus unidades por caja. Aquí se juntan por proveedor.
+function prodsDeProv(prov){
+  const vistos = {}, out = [];
+  (APP.productos||[]).forEach(p => {
+    if (p.ID_Proveedor !== prov || vistos[p.Nombre_Producto]) return;
+    vistos[p.Nombre_Producto] = 1; out.push(p);
+  });
+  return out;
+}
+function presentaciones(prod, prov){
+  const out = [], vistos = {};
+  (APP.productos||[]).forEach(p => {
+    if (p.Nombre_Producto !== prod || p.ID_Proveedor !== prov) return;
+    const upc = Number(p.Unidades_Por_Caja)||1;
+    if (upc <= 1 || vistos[upc]) return;
+    vistos[upc] = 1;
+    out.push({ upc, etiqueta: String(p.Unidad_Proveedor||'').trim() || 'Caja' });
+  });
+  return out.sort((a, b) => a.upc - b.upc);
+}
+function opcionesTipo(prod, prov){
+  return '<option value="unidades">Unidades</option>'
+    + presentaciones(prod, prov).map(x => `<option value="x${x.upc}">${esc(x.etiqueta)} (×${x.upc})</option>`).join('');
+}
+function upcDeTipo(tipo){ return /^x\d+$/.test(String(tipo||'')) ? parseInt(String(tipo).slice(1), 10) : 1; }
+function textoEquivale(prod, prov, tipo, cant){
+  const upc = upcDeTipo(tipo);
+  if (upc <= 1) return '';
+  const pr = presentaciones(prod, prov).filter(x => x.upc === upc)[0];
+  const et = pr ? pr.etiqueta : 'Caja';
+  return `${cant} × ${et} = ${cant*upc} unidades`;
+}
 function getUnidad(prod, prov){
   const f = fichaDe(prod, prov);
   return f ? (f.Unidad||'Unidad') : 'Unidad';
@@ -2173,7 +2207,7 @@ function filtrarProds(){
   limpiarProducto();
   const inp = document.getElementById('a-prod-buscar');
   inp.disabled = !prov;
-  const n = (APP.productos||[]).filter(p => p.ID_Proveedor === prov).length;
+  const n = prodsDeProv(prov).length;
   inp.placeholder = prov ? `Escribe para buscar entre ${n} productos` : 'Elige el proveedor primero';
   resetUPCSel();
 
@@ -2200,7 +2234,7 @@ function buscarProducto(){
   document.getElementById('a-prod-x').style.display = inp.value ? '' : 'none';
   const prov = document.getElementById('a-prov').value;
 
-  let lista = (APP.productos||[]).filter(p => p.ID_Proveedor === prov);
+  let lista = prodsDeProv(prov);
   if (q){
     lista = lista.filter(p => sinAcentos(p.Nombre_Producto).includes(q)
                            || sinAcentos(p.Codigo_Proveedor).includes(q));
@@ -2215,9 +2249,9 @@ function buscarProducto(){
     cont.classList.add('show'); return;
   }
   cont.innerHTML = lista.slice(0,40).map((p,i) => {
-    const upc = Number(p.Unidades_Por_Caja)||1;
+    const upcs = presentaciones(p.Nombre_Producto, prov).map(x => x.upc);
     const cod = p.Codigo_Proveedor ? `<span class="combo-cod">${esc(p.Codigo_Proveedor)}</span>` : '';
-    const caja = upc>1 ? `<span class="combo-meta">${upc} u/caja</span>` : '';
+    const caja = upcs.length ? `<span class="combo-meta">${upcs.join(' / ')} u/caja</span>` : '';
     const pre = Number(p.Precio_Coste) ? `<span class="combo-meta">${eur(p.Precio_Coste)}/u</span>` : '';
     return `<div class="combo-item" data-i="${i}" onmousedown="elegirProducto('${js(p.Nombre_Producto)}')">
       <span class="combo-nom">${cod}${esc(p.Nombre_Producto)}</span>
@@ -2273,10 +2307,8 @@ function resetUPCSel(){
 function onProdChange(){
   const prov = document.getElementById('a-prov').value;
   const prod = document.getElementById('a-prod').value;
-  const upc = prod ? getUPC(prod, prov) : 1;
   const s = document.getElementById('a-tipo');
-  s.innerHTML = '<option value="unidades">Unidades</option>'
-    + (upc > 1 ? `<option value="cajas">Cajas (×${upc})</option>` : '');
+  s.innerHTML = prod ? opcionesTipo(prod, prov) : '<option value="unidades">Unidades</option>';
   actualizarUPCHint();
 }
 function actualizarUPCHint(){
@@ -2285,9 +2317,7 @@ function actualizarUPCHint(){
   const tipo = document.getElementById('a-tipo').value;
   const cant = parseInt(document.getElementById('a-cant').value)||1;
   const h = document.getElementById('upc-hint');
-  if (!prod || tipo !== 'cajas'){ h.textContent = ''; return; }
-  const upc = getUPC(prod, prov);
-  h.textContent = `${cant} caja${cant>1?'s':''} = ${cant*upc} unidades`;
+  h.textContent = prod ? textoEquivale(prod, prov, tipo, cant) : '';
 }
 
 // Desde Hoy: abre Pedir con ese proveedor ya elegido (y el foco listo para buscar el producto)
@@ -2310,8 +2340,7 @@ function anyadirALista(){
   if (!prov || !prod){ showToast('Selecciona proveedor y producto'); return; }
   if (!loc){ showToast('Selecciona el local destino'); return; }
 
-  const upc = getUPC(prod, prov);
-  const cantReal = tipo === 'cajas' ? cantInput*upc : cantInput;
+  const cantReal = cantInput * upcDeTipo(tipo);
   const hecho = () => {
     limpiarProducto();
     document.getElementById('a-cant').value = 1;
@@ -2623,17 +2652,15 @@ function onMebProvChange(){ filtrarProductosMeb(''); onMebProdChange(); }
 function filtrarProductosMeb(sel){
   const prov = document.getElementById('meb-prov').value;
   const s = document.getElementById('meb-prod');
-  s.innerHTML = (APP.productos||[]).filter(p => p.ID_Proveedor === prov)
+  s.innerHTML = prodsDeProv(prov)
     .map(p => `<option value="${esc(p.Nombre_Producto)}">${esc(p.Nombre_Producto)}</option>`).join('');
   if (sel) s.value = sel;
 }
 function onMebProdChange(){
   const prov = document.getElementById('meb-prov').value;
   const prod = document.getElementById('meb-prod').value;
-  const upc = prod ? getUPC(prod, prov) : 1;
   const s = document.getElementById('meb-tipo');
-  s.innerHTML = '<option value="unidades">Unidades</option>'
-    + (upc>1 ? `<option value="cajas">Cajas (×${upc})</option>` : '');
+  s.innerHTML = prod ? opcionesTipo(prod, prov) : '<option value="unidades">Unidades</option>';
   actualizarMebHint();
 }
 function actualizarMebHint(){
@@ -2642,9 +2669,7 @@ function actualizarMebHint(){
   const tipo = document.getElementById('meb-tipo').value;
   const cant = parseInt(document.getElementById('meb-cant').value)||1;
   const h = document.getElementById('meb-hint');
-  if (!prod || tipo !== 'cajas'){ h.textContent = ''; return; }
-  const upc = getUPC(prod, prov);
-  h.textContent = `${cant} caja${cant>1?'s':''} = ${cant*upc} unidades`;
+  h.textContent = prod ? textoEquivale(prod, prov, tipo, cant) : '';
 }
 function guardarEdicionBorrador(){
   const id = document.getElementById('meb-id').value;
@@ -2655,8 +2680,7 @@ function guardarEdicionBorrador(){
   const loc = document.getElementById('meb-local').value;
   const notas = document.getElementById('meb-notas').value.trim();
   if (!prov || !prod){ showToast('Selecciona proveedor y producto'); return; }
-  const upc = getUPC(prod, prov);
-  const cantReal = tipo === 'cajas' ? cantInput*upc : cantInput;
+  const cantReal = cantInput * upcDeTipo(tipo);
   google.script.run
     .withSuccessHandler(r => {
       if (!r || !r.ok){ showToast('Error al guardar'); return; }
@@ -2702,15 +2726,20 @@ function filtrarCatalogo(){
     const sums = p.suministros || [];
     const conP = sums.filter(x => Number(x.Precio_Coste));
     const barato = conP.length ? conP[0] : null;
-    const ahorro = conP.length > 1 ? conP[conP.length-1].Precio_Coste - barato.Precio_Coste : 0;
+    // El más barato de cada proveedor (sus presentaciones no compiten entre sí)
+    const mejorDe = {};
+    conP.forEach(x => { if (!mejorDe[x.Proveedor]) mejorDe[x.Proveedor] = x; });
+    const porProv = Object.keys(mejorDe).map(k => mejorDe[k]);
+    const nProvs = new Set(sums.map(x => x.Proveedor)).size;
+    const ahorro = porProv.length > 1 ? porProv[porProv.length-1].Precio_Coste - barato.Precio_Coste : 0;
     const pj = JSON.stringify(p).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
 
     const filas = sums.length ? sums.map(x => {
-      const mejor = barato && x.ID_Suministro === barato.ID_Suministro && conP.length > 1;
+      const mejor = barato && x.ID_Suministro === barato.ID_Suministro && porProv.length > 1;
       return `<div class="sum-fila${mejor?' barato':''}">
         <span class="sum-prov">${mejor?'<span class="sum-mejor">mejor</span>':''}${esc(x.Proveedor)}</span>
         ${x.Codigo_Proveedor?`<span class="prod-cod">${esc(x.Codigo_Proveedor)}</span>`:''}
-        ${x.Unidades_Por_Caja>1?`<span class="combo-meta">${x.Unidades_Por_Caja} u/caja</span>`:''}
+        ${x.Unidades_Por_Caja>1?`<span class="combo-meta">${x.Unidad_Proveedor?esc(x.Unidad_Proveedor)+' · ':''}${x.Unidades_Por_Caja} u/caja</span>`:''}
         <span class="sum-precio">${Number(x.Precio_Coste)
           ? eur(x.Precio_Coste)+'/u'+(Number(x.Impuesto)?' · IGIC '+Number(x.Impuesto)+'%':'')
           : '<i>sin precio</i>'}</span>
@@ -2722,7 +2751,7 @@ function filtrarCatalogo(){
         <div class="prod-info">
           <h4>${esc(p.Nombre_Producto)}
             <span class="chip ud" style="font-size:.62rem;margin-left:2px">${esc(p.Unidad||'Unidad')}</span>
-            ${sums.length>1?`<span class="chip sl" style="font-size:.6rem;margin-left:2px">${sums.length} proveedores</span>`:''}
+            ${nProvs>1?`<span class="chip sl" style="font-size:.6rem;margin-left:2px">${nProvs} proveedores</span>`:''}
           </h4>
           ${p.Notas_Producto?`<p class="prod-nota-txt">${esc(p.Notas_Producto)}</p>`:''}
           ${ahorro>0.001?`<p class="prod-ahorro">Ahorras ${eur(ahorro)}/u pidiéndoselo a ${esc(barato.Proveedor)}</p>`:''}
@@ -2919,6 +2948,7 @@ function addSumEditor(s){
   div.innerHTML = `
     <div class="sumed-head">
       <span class="sumed-tit">Proveedor ${i+1}</span>
+      <button class="sum-otra" type="button" onclick="otraPresentacion(${i})" title="El mismo proveedor lo vende también en otra presentación (Display, Caja…)">+ otra presentación</button>
       <button class="sumed-x" onclick="quitarSumEditor(${i},'${js(d.ID_Suministro||'')}')">×</button>
     </div>
     <input type="hidden" id="sum-id-${i}" value="${esc(d.ID_Suministro||'')}">
@@ -2956,7 +2986,7 @@ function addSumEditor(s){
     </label>
     <div class="mb" style="margin-bottom:0">
       <label>Unidad del proveedor <span style="font-weight:400;text-transform:none;color:var(--tx3)">(si la llama distinto)</span></label>
-      <input id="sum-uprov-${i}" value="${esc(d.Unidad_Proveedor||'')}" placeholder="Ej: él la vende por cajas de 24" autocomplete="off">
+      <input id="sum-uprov-${i}" value="${esc(d.Unidad_Proveedor||'')}" placeholder="Ej: Display, Caja de 2 displays…" autocomplete="off">
     </div>`;
   document.getElementById('mprod-sums').appendChild(div);
   const imp = document.getElementById('sum-imp-'+i);
@@ -2964,6 +2994,14 @@ function addSumEditor(s){
   hintSum(i);
 }
 
+// Añade otra fila del MISMO proveedor (código, IGIC y nombre de la unidad copiados) para otra presentación
+function otraPresentacion(i){
+  const g = id => { const e = document.getElementById(id+i); return e ? e.value : ''; };
+  addSumEditor({ Proveedor: g('sum-prov-'), Codigo_Proveedor: g('sum-cod-'),
+                 Impuesto: parseFloat(g('sum-imp-')) || 0, Unidades_Por_Caja: 1, Unidad_Proveedor: '' });
+  const n = _sumSeq - 1, c = document.getElementById('sum-upc-'+n);
+  if (c){ c.focus(); c.select(); }
+}
 function quitarSumEditor(i, idSum){
   const d = document.getElementById('sumed-'+i);
   if (d) d.remove();
@@ -3005,9 +3043,10 @@ function guardarProd(btn){
     if (!sel) continue;                       // se quitó
     const prov = sel.value.trim();
     if (!prov) continue;
-    if (vistos[prov]){ showToast('El proveedor "'+prov+'" está repetido'); return; }
-    vistos[prov] = 1;
     const upc = parseInt(document.getElementById('sum-upc-'+i).value)||1;
+    const clave = prov + '|' + upc;
+    if (vistos[clave]){ showToast('"'+prov+'" ya tiene una presentación de '+upc+' unidades: cambia las unidades por caja'); return; }
+    vistos[clave] = 1;
     const pv = parseFloat(document.getElementById('sum-pre-'+i).value)||0;
     const tipo = document.getElementById('sum-tipo-'+i).value;
     const impS = parseFloat(document.getElementById('sum-imp-'+i).value)||0;
@@ -3088,7 +3127,7 @@ function renderProveedores(){
     const av = (p.Nombre||'?').charAt(0).toUpperCase();
     const dias = [p.Dias_Pedido?'Pedido: '+p.Dias_Pedido:'', p.Dias_Entrega?'Entrega: '+p.Dias_Entrega:'']
                  .filter(Boolean).join(' · ');
-    const nProd = (APP.productos||[]).filter(x => x.ID_Proveedor === p.Nombre).length;
+    const nProd = prodsDeProv(p.Nombre).length;
     const pj = JSON.stringify(p).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
     return `<div class="prov-row">
       <div class="prov-avatar">${esc(av)}</div>
