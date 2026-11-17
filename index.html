@@ -195,7 +195,7 @@ input[type=checkbox]{width:auto}
 // Mismo contrato que escritorio/web/shim_escritorio.js. Sin dependencias, ES5.
 (function () {
   // Las escrituras las rellena el constructor de la PWA (no tocar a mano esta línea).
-  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "importarCatalogo", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos", "encolarWhatsApp", "reclamarWhatsApp", "marcarWhatsApp", "cancelarWhatsApp", "guardarRevisionWhatsApp", "guardarAvisosConfig", "probarAvisoWhatsApp"];
+  var ESCRITURAS = ["savePedidos", "actualizarCantidad", "guardarNota", "updatePedido", "eliminarBorrador", "marcarListoParaPedir", "marcarPedidoRealizado", "volverABorrador", "deshacerPedidoRealizado", "repetirGrupo", "repetirUltimo", "actualizarPrecioLinea", "marcarEstadoDia", "quitarEstadoDia", "saveProducto", "deleteProducto", "saveProveedor", "deleteProveedor", "saveAviso", "deleteAviso", "saveLocales", "importarCatalogo", "fusionarProductos", "fusionarProveedores", "arreglarReferencia", "archivarPedidosAntiguos", "encolarWhatsApp", "reclamarWhatsApp", "marcarWhatsApp", "cancelarWhatsApp", "marcarWhatsAppVisto", "guardarRevisionWhatsApp", "guardarAvisosConfig", "probarAvisoWhatsApp"];
   var CLAVE = 'inteks_conexion_web';
   var RE_URL = /^https:\/\/script\.google\.com\/.+\/exec$/;
 
@@ -372,7 +372,7 @@ input[type=checkbox]{width:auto}
 })();
 
 </script>
-<script>window.VERSION_PWA = "2026.11.16.2";</script>
+<script>window.VERSION_PWA = "2026.11.17.1";</script>
 </head>
 <body>
 
@@ -1895,11 +1895,15 @@ function waEntendido(id){
   _waVistosMem.push(id);
   const v = waVistos(); if (v.indexOf(id) === -1) v.push(id);
   try { localStorage.setItem('wa_fallos_vistos', JSON.stringify(v.slice(-100))); } catch(e){}
+  // También en la hoja: la app de escritorio no conserva el almacenamiento del navegador al cerrarse,
+  // y así el aviso descartado deja de salir en cualquier dispositivo.
+  Object.keys(APP.whatsapp || {}).forEach(k => { if ((APP.whatsapp[k] || {}).id === id) APP.whatsapp[k].visto = true; });
+  try { google.script.run.withFailureHandler(() => {}).marcarWhatsAppVisto(id); } catch(e){}
   renderHoy();
 }
 function avisoFallosWhatsApp(){
   const vistos = waVistos(), w = APP.whatsapp || {};
-  const filas = Object.keys(w).filter(k => WA_FALLOS[(w[k] || {}).estado] && w[k].id && vistos.indexOf(w[k].id) === -1)
+  const filas = Object.keys(w).filter(k => WA_FALLOS[(w[k] || {}).estado] && w[k].id && !w[k].visto && vistos.indexOf(w[k].id) === -1)
     .map(k => {
       const e = w[k], p = k.split('||');
       const dest = p[0].indexOf('REV·') === 0
@@ -1990,6 +1994,8 @@ function bloquePedido(pref, prov, local, listos, borrs, varios){
       + bloqueTotales(listos)
       + `<button class="generar-btn" onclick="abrirModalGenerar('${pj}','${lj}')">Generar texto del pedido</button>
          ${bloqueWhatsApp(pref, prov, local)}
+         ${revisionTel() ? `<button class="btn btn-outline btn-block revision-btn"
+           onclick="enviarARevision('${pj}','${lj}','${clavePL(pref, prov, local)}',this)">Enviar a ${esc(revisionNombre())} para revisar</button>` : ''}
          <div class="hoy-acciones">
            <button class="confirmar-btn" onclick="confirmarHoy('${pj}','${lj}',this)">${vieneAlLocal(prov) ? 'Confirmar — ya vino el proveedor' : 'Confirmar — pedido realizado'}</button>
            <button class="btn btn-outline btn-sm" onclick="devolverABorrador('${pj}','${lj}',this)" title="Si te faltó algo">Volver a borrador</button>
@@ -4140,7 +4146,7 @@ window.enviarWhatsAppPedido = function(prov, local){
 };
 
 window.enviarRevisionWhatsApp = function(prov, local, texto){
-  const ids = lineasDe(APP.borradores, prov, local).map(b => b.ID_Pedido);
+  const lin = lineasDe(APP.borradores, prov, local), ids = (lin.length ? lin : lineasDe(APP.listos, prov, local)).map(b => b.ID_Pedido);
   return new Promise((res, rej) => {
     google.script.run.withSuccessHandler(res).withFailureHandler(rej)
       .encolarWhatsApp({ proveedor: prov, local: local, texto: texto, idsPedido: ids, origen: 'revision' });
@@ -4317,10 +4323,12 @@ function textoRevision(prov, local, lista){
 function enviarARevision(prov, local, k, btn){
   if (!revisionTel()) return;
   guardarNotaPL(prov, local, k).then(() => {
-    if (!lineasDe(APP.borradores, prov, local).length) return;
+    // Vale para cualquier proveedor y en cualquier punto: borrador o ya listo para pedir
+    const lista = lineasDe(APP.borradores, prov, local).length ? APP.borradores : APP.listos;
+    if (!lineasDe(lista, prov, local).length) return;
     if (!confirm('¿Enviar a ' + revisionNombre() + ' para que lo revise?')) return;
     if (btn) btn.disabled = true;
-    return Promise.resolve(window.enviarRevisionWhatsApp(prov, local, textoRevision(prov, local, APP.borradores)))
+    return Promise.resolve(window.enviarRevisionWhatsApp(prov, local, textoRevision(prov, local, lista)))
       .then(() => { showToast('Enviado a ' + revisionNombre() + ' para revisar', 3500); if (btn) btn.disabled = false; });
   }).catch(e => {
     if (btn) btn.disabled = false;
