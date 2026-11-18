@@ -161,8 +161,8 @@ input[type=checkbox]{width:auto}
 .sumed-hija{margin-left:14px;border-left:3px solid var(--bl-mid)}
 .sumed-hija .h-prov,.sumed-hija .h-cod,.sumed-hija .h-imp{display:none}
 .sum-otra{background:none;border:0;color:var(--bl);font-size:.74rem;font-weight:600;cursor:pointer;margin-left:auto;padding:2px 4px}
-.modal-footer{display:flex;gap:9px;margin-top:18px}
-.modal-footer .btn{flex:1}
+.modal-footer{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+.modal-footer .btn{flex:1 1 auto;min-width:0}
 
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(90px);
   background:var(--tx);color:#fff;padding:12px 20px;border-radius:99px;font-size:.85rem;font-weight:500;
@@ -372,7 +372,7 @@ input[type=checkbox]{width:auto}
 })();
 
 </script>
-<script>window.VERSION_PWA = "2026.11.17.1";</script>
+<script>window.VERSION_PWA = "2026.11.18.1";</script>
 </head>
 <body>
 
@@ -1133,7 +1133,7 @@ input[type=checkbox]{width:auto}
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="cerrarModal('modal-enviar-pedido')">Cancelar</button>
       <button class="btn btn-outline" id="ep-copiar" onclick="epCopiar()">Copiar</button>
-      <button class="btn btn-outline" id="ep-rev" style="display:none" onclick="epRevision(this)">Enviar a mi jefa</button>
+      <button class="btn btn-outline" id="ep-rev" style="display:none;flex-basis:100%" onclick="epRevision(this)">Enviar a mi jefa</button>
       <button class="btn btn-outline" id="ep-prog" onclick="epProgramar()">A una hora…</button>
       <button class="btn btn-wa" id="ep-ok" onclick="epEnviar()">Enviar ahora</button>
     </div>
